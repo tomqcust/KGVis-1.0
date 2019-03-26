@@ -1,7 +1,20 @@
-# HelloWorld
+# KGVIS
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 7.0.3.
 
+## Installation
+
+1. Install Node.js from [Node.js](https://nodejs.org).
+2. Download source code
+    ```
+    git clone https://github.com/tomqcust/hello-world.git
+    ```
+3. Start
+    ```
+    cd SPARQLVis
+    npm install
+    ```
+    
 ## Development server
 
 Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.

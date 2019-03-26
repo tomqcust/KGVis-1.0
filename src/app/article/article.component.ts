@@ -6,6 +6,7 @@ const endpoint = 'https://dbpedia.org/sparql';
 const dbr = 'PREFIX dbr:<http://dbpedia.org/resource/> ';
 const dbo = 'PREFIX dbo:<http://dbpedia.org/ontology/> ';
 const dbp = 'PREFIX dbp:<http://dbpedia.org/property/> ';
+const rdf = 'PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>';
 const dataset = {
   nodes: [],
   relationships: [],
@@ -119,21 +120,27 @@ export class ArticleComponent implements OnInit {
       });
     // createNode(0, 0).imageurl('http://commons.wikimedia.org/wiki/Special:FilePath/Karl_Marx_001.jpg?width=300').caption('Karl_Marx');
     $(function() {
-      const availableTags = [
-        'Karl_Marx',
-        'Friedrich_Engels',
-        'Voltaire',
-        'William_Shakespeare',
-        'Moses_Hess',
-        'Max_Stirner',
-        'Pierre-Joseph_Proudhon',
-        'Adam_Smith',
-        'Aristotle',
-        'Baruch_Spinoza',
-        'Charles_Babbage'
-      ];
       $( 'input#node_caption' ).autocomplete({
-          source: availableTags
+          minChars: 3,
+          source: function( request, response ) {
+            if ( request.term.length < 3) {
+              return 0;
+            }
+            const sparql = dbr + dbo + dbp + rdf + ' SELECT ?person WHERE {?person rdf:type dbo:Person. FILTER( regex ((?person), \'' + request.term.toString() + '\' ))} LIMIT 20';
+            d3sparql.query(endpoint, sparql, render);
+            function render(json, bug) {
+              if ( json != null && json.results.bindings.length !== 0 ) {// 请求成功
+                const results = json.results.bindings;
+                response( $.map( results, function( item ) {
+                  return {
+                    label: item.person.value.slice(28),
+                    value: item.person.value.slice(28)
+                  };
+                }));
+              } else { // 请求失败
+              }
+            }
+          },
       });
   });
   }
@@ -254,8 +261,8 @@ const Relationship = function(start, end) {
   };
 };
 
-function addRelationship(start, end) {
-  const relation = new Relationship(start, end).id(start.id() + '_' + end.id());
+function addRelationship(start, end, predicate) {
+  const relation = new Relationship(start, end).id(start.id() + '_' + end.id()).predicate(predicate);
   console.log('xxxxxxxxxxxxxxxxxxxxx-' + dataset.relationships.length);
   if (dataset.relationships.length === 0) {
     dataset.relationships.push(relation);
@@ -297,9 +304,8 @@ function addRelationship(start, end) {
        } else {
         this.setAttribute('stroke-dasharray', '10'); }
     });*/
-
-
-    relationship.append('text')
+    if ( relation.end.isLeftOf(relation.start)) {
+      relationship.append('text')
       .attr('class', 'type')
       .attr('transform', function(d) {
         return rotateIfRightToLeft(d);
@@ -311,7 +317,24 @@ function addRelationship(start, end) {
       .attr('y', 0 )
       .attr( 'font-size', '50px')
       .attr( 'font-family', '"Gill Sans", "Gill Sans MT", Calibri, sans-serif')
-      .text( function ( d ) { return  d.predicate(); } );
+      .text( function ( d ) { return  d.predicate(); } )
+      .attr('transform', 'rotate(180)');
+    } else {
+      relationship.append('text')
+      .attr('class', 'type')
+      .attr('transform', function(d) {
+        return rotateIfRightToLeft(d);
+      })
+      .attr('text-anchor', 'middle')
+      .attr('baseline-shift', '30%')
+      .attr('alignment-baseline', 'alphabetic')
+      .attr('x', function(d) { return side( d ) * d.arrow.apex.x; } )
+      .attr('y', 0 )
+      .attr( 'font-size', '50px')
+      .attr( 'font-family', '"Gill Sans", "Gill Sans MT", Calibri, sans-serif')
+      .text( function ( d ) { return  d.predicate(); } )
+      .attr('transform', null);
+    }
 }
 
 function appendModalBackdrop() {
@@ -612,8 +635,16 @@ function dragRingMove(d) {
 
 function deletedNodeView(node) {
   const temp = d3.selectAll('#id' + node.id())[0][0];
-  temp.parentNode.parentNode.removeChild(temp.parentNode);
+  if ( temp !== undefined) {
+    temp.parentNode.parentNode.removeChild(temp.parentNode);
+  }
 
+}
+
+function deleteShip(start, end) {
+  const ship = new Relationship(start, end);
+  const index = dataset.relationships.indexOf(ship);
+  dataset.relationships.splice(index, 1);
 }
 
 function deletedShipView(node) {
@@ -621,20 +652,30 @@ function deletedShipView(node) {
   const tail = getTailNode(node);
   for (const x of head) {
     const temp = d3.selectAll('#id' + x.id() + '_' + node.id())[0][0];
-    temp.parentNode.parentNode.removeChild(temp.parentNode);
+    if ( temp !== undefined) {
+      temp.parentNode.parentNode.removeChild(temp.parentNode);
+    }
+    // deleteShip(x, node);
   }
-  for (const x of tail) {
-    const temp = d3.selectAll('#id' + node.id() + '_' + x.id())[0][0];
-    temp.parentNode.parentNode.removeChild(temp.parentNode);
-    deletedNodeView(x);
+  for (const y of tail) {
+    const temp = d3.selectAll('#id' + node.id() + '_' + y.id())[0][0];
+    console.log('ttttttttttttttttttemp');
+    console.log(temp);
+    if ( temp !== undefined) {
+      temp.parentNode.parentNode.removeChild(temp.parentNode);
+      deletedNodeView(y);
+      deletedShipView(y);
+    }
   }
+    // deleteShip(node, x);
 }
 
 function editnode() {
   const r = 800;
   console.log(d3.select(this)[0][0].__data__.result());
   console.log(d3.select(this));
-  const tempvalue = d3.select(this)[0][0].parentElement;
+  const temp = d3.select(this)[0][0];
+  const tempvalue = temp.parentElement;
   const editor = d3.select('.pop-up-editor.node');
   const captionField = editor.select('#node_caption');
   captionField.node().value = tempvalue.childNodes[3].innerHTML || '';
@@ -656,7 +697,8 @@ function editnode() {
           const tempi = x / 2;
           nodes[x - 1].x(head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27)).y(head[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27));
         }
-        addRelationship(head[0], nodes[x - 1]);
+        const predicate = findRelationById(head[0].id() + '_' + temp.__data__.id()).predicate();
+        addRelationship(head[0], nodes[x - 1], predicate);
       }
       d3.select(this)[0][0].__data__.show = true;
       drawNodes(d3.select(this)[0][0].__data__.result());
@@ -672,6 +714,8 @@ function editnode() {
     }
   }
   function saveModal() {
+    tempvalue.__data__.caption(captionField.node().value);
+    console.log(tempvalue.__data__.caption());
     tempvalue.childNodes[3].innerHTML = captionField.node().value;
     const person_name = captionField.node().value;
     const sparql = dbr + dbo + dbp + 'SELECT ?path WHERE {dbr:' + person_name + ' dbo:thumbnail ?path.}';
@@ -682,7 +726,7 @@ function editnode() {
         tempvalue.childNodes[0].setAttribute('href', uri);
         console.log(uri);
       } else { // 请求失败
-
+        tempvalue.childNodes[0].setAttribute('href', '');
       }
     }
     cancelModal();
@@ -699,6 +743,7 @@ function editRelationship() {
   captionField.node().value = tempvalue.parentElement.childNodes[1].innerHTML || '';
   function saveModal() {
     const predicate = captionField.node().value;
+    tempvalue.__data__.predicate(predicate);
     const subject = tempvalue.__data__.start.caption();
     console.log(subject);
     tempvalue.parentElement.childNodes[1].innerHTML = captionField.node().value;
@@ -721,7 +766,6 @@ function editRelationship() {
           dataset.highestId += 1;
           nodes.push(temp);
           dataset.nodes.push(temp);
-
         }
         node.result(nodes);
       } else {// 请求失敗
@@ -732,6 +776,14 @@ function editRelationship() {
   }
   editor.select('#edit_relationship_cancle').on('click', cancelModal);
   editor.select('#edit_relationship_save').on('click', saveModal);
+}
+
+function findRelationById(id) {
+  for (const x of dataset.relationships) {
+    if (x.id() === id) {
+      return x;
+    }
+  }
 }
 
 function getHeadNode(node) {
@@ -797,7 +849,7 @@ function touchRing(d) {
   console.log('333');
   const t = d3.select(this);
   const node = createNode(parseInt(t[0][0].getAttribute('cx'), 10), parseInt(t[0][0].getAttribute('cy'), 10));
-  const ship = addRelationship(d, node[0][0].__data__);
+  const ship = addRelationship(d, node[0][0].__data__, '');
   return {
     x: t[0][0].parentElement.childNodes[1].getAttribute('cx'),
     y: t[0][0].parentElement.childNodes[1].getAttribute('cy'),
