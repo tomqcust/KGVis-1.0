@@ -11,7 +11,7 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
     ```
 3. Start
     ```
-    cd SPARQLVis
+    cd hello-world
     npm install
     ```
     

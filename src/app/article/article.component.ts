@@ -47,77 +47,10 @@ export class ArticleComponent implements OnInit {
   ngOnInit() {
     dataset.highestId += 1;
     const node = new Node().x(0).y(0).id(dataset.highestId - 1).caption('Karl_Marx');
+    node.imageurl('https://commons.wikimedia.org/wiki/Special:FilePath/Karl_Marx_001.jpg?width=300');
+    node.variable = false;
     dataset.nodes.push(node);
-    const images = d3.selectAll('#d3graph').selectAll('circle.g').data([dataset.nodes[dataset.highestId - 1]]);
-    console.log(dataset.nodes[dataset.highestId - 1]);
-    const imagesss = images.enter().append('g').attr('class', 'image_test');
-    imagesss.append('image').attr('class', 'image-class')
-      .attr('href', 'http://commons.wikimedia.org/wiki/Special:FilePath/Karl_Marx_001.jpg?width=300')
-      .attr('x', function(d) {
-        console.log(d);
-        return d.x() - 75;
-      })
-      .attr('y', function(d) {
-        return d.y() - 60;
-      })
-      .attr('height', '150')
-      .attr('width', '150')
-      .attr('clip-path', 'circle(60px at 75px 60px)')
-      .attr('display', 'true');
-
-      imagesss.append('circle')
-      .attr('class', 'node circle')
-      .attr('stroke-dasharray', '15')
-      .attr('id', function(d) {
-        return 'id' + d.id();
-      })
-      .attr('r', function(d) {
-        return 60;
-      })
-      .attr('stroke', 'rgb(0,0,0)')
-      .attr('stroke-width', '8px')
-      .attr('fill', 'rgba(255, 255, 255, 0)')
-      .attr('cx', function(d) {
-        return d.x();
-      })
-      .attr('cy', function(d) {
-        return d.y();
-      })
-      .call(d3.behavior.drag().origin(dragCircle).on('drag', dragCircleMove))
-      .on( 'dblclick', editnode);
-
-      imagesss.append('circle')
-      .attr('class', 'node ring')
-      .attr('r', function(d) {
-        return 65;
-      })
-      .attr('stroke', 'rgba(255,255,255,0)')
-      .attr('stroke-width', '10px')
-      .attr('fill', 'none')
-      .attr('cx', function(d) {
-        return d.x();
-      })
-      .attr('cy', function(d) {
-        return d.y();
-      })
-      .call(d3.behavior.drag().origin(touchRing).on('drag', dragRingMove));
-
-      imagesss.append('text')
-      .attr('class', 2)
-      .attr('text-anchor', 'middle')
-      .attr('alignment-baseline', 'central')
-      .attr('x', function(d) {
-        return d.x();
-      })
-      .attr('y', function(d) {
-        return d.y() - 95;
-      })
-      .attr( 'fill', 'rgb(51,51,51)' )
-      .attr( 'font-size', '50px')
-      .attr( 'font-family', '\'Gill Sans\', \'Gill Sans MT\', Calibri, sans-serif')
-      .text(function(d) {
-        return d.caption();
-      });
+    drawNodes([node]);
     // createNode(0, 0).imageurl('http://commons.wikimedia.org/wiki/Special:FilePath/Karl_Marx_001.jpg?width=300').caption('Karl_Marx');
     $(function() {
       $( 'input#node_caption' ).autocomplete({
@@ -157,6 +90,7 @@ const Node  = function() {
   let id;
   let result = null;
   const show = false;
+  const variable = true;
   this.insideRadius = parameters.insideRadius;
   this.borderWidth = parameters.nodeStrokeWidth;
   this.arrowMargin = parameters.nodeStartMargin;
@@ -238,6 +172,7 @@ const Relationship = function(start, end) {
   let id;
   this.start = start;
   this.end = end;
+  const variable = true;
   this.id = function(x) {
     if (arguments.length === 1) {
       id = x;
@@ -263,14 +198,17 @@ const Relationship = function(start, end) {
 
 function addRelationship(start, end, predicate) {
   const relation = new Relationship(start, end).id(start.id() + '_' + end.id()).predicate(predicate);
-  console.log('xxxxxxxxxxxxxxxxxxxxx-' + dataset.relationships.length);
+  if (predicate === '') {
+    relation.variable = true;
+  } else {
+    relation.variable = false;
+  }
   if (dataset.relationships.length === 0) {
     dataset.relationships.push(relation);
   } else {
     for (let x = 0; x < dataset.relationships.length; x++) {
       if ( dataset.relationships[x].id() !== relation.id()) {
         if (x === dataset.relationships.length - 1) {
-          console.log(dataset.relationships[x].id() + '-yyyyyyyyyy-' + relation.id());
           dataset.relationships.push(relation);
         }
       } else {
@@ -291,7 +229,13 @@ function addRelationship(start, end, predicate) {
       return 'id' + d.id();
     })
     .attr('stroke', 'rgb(0, 0, 0)')
-    .attr('stroke-dasharray', '10')
+    .attr('stroke-dasharray', function(d) {
+      if (d.variable) {
+        return '10';
+      } else {
+        return 'none';
+      }
+    })
     .attr('stroke-width', '3px')
     .attr('d', function(d) {
       console.log(d);
@@ -449,7 +393,13 @@ function drawNodes(nodes) {
 
     imagesss.append('circle')
     .attr('class', 'node circle')
-    .attr('stroke-dasharray', '15')
+    .attr('stroke-dasharray', function(d) {
+      if (d.variable) {
+        return '15';
+      } else {
+        return 'none';
+      }
+    })
     .attr('id', function(d) {
       return 'id' + d.id();
     })
@@ -539,7 +489,9 @@ function dragCircleMove(d) {
   // 图片
   element.childNodes[0].setAttribute('x',  (parseInt(x, 10) - 75).toString());
   element.childNodes[0].setAttribute('y',  (parseInt(y, 10) - 60).toString() );
-  element.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + ((parseInt(x, 10)) * 0.001 + 75).toString() + 'px ' + ((parseInt(y, 10)) * 0.001 + 60).toString() + 'px)' );
+  const tempx = ((parseInt(x, 10)) * 0.001 + 75).toString();
+  const tempy = ((parseInt(y, 10)) * 0.001 + 60).toString();
+  element.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + tempx + 'px ' + tempy + 'px)' );
   // 文字
   element.childNodes[3].setAttribute('x',  (parseInt(x, 10)).toString());
   element.childNodes[3].setAttribute('y',  (parseInt(y, 10) - 95).toString() );
@@ -613,7 +565,9 @@ function dragRingMove(d) {
   // 图片
   tail.childNodes[0].setAttribute('x',  (parseInt(x, 10) - 75).toString());
   tail.childNodes[0].setAttribute('y',  (parseInt(y, 10) - 60).toString() );
-  tail.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + ((parseInt(x, 10)) * 0.001 + 75).toString() + 'px ' + ((parseInt(y, 10)) * 0.001 + 60).toString() + 'px)' );
+  const tempx = ((parseInt(x, 10)) * 0.001 + 75).toString();
+  const tempy = ((parseInt(y, 10)) * 0.001 + 60).toString();
+  tail.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + tempx + 'px ' + tempy + 'px)' );
   // 文字
   tail.childNodes[3].setAttribute('x',  (parseInt(x, 10)).toString());
   tail.childNodes[3].setAttribute('y',  (parseInt(y, 10) - 95).toString() );
@@ -682,6 +636,7 @@ function editnode() {
   if (d3.select(this)[0][0].__data__.result() === null) {// 如果结果为空
     // appendModalBackdrop();
     editor.classed( 'hide', false );
+    captionField[0][0].parentElement.childNodes[0].focus();
     editor.select('#edit_node_cancle').on('click', cancelModal);
     editor.select('#edit_node_save').on('click', saveModal);
   } else {// 如果结果不为空
@@ -692,10 +647,14 @@ function editnode() {
       for (let x = 1; x < nodes.length + 1; x++) {
         if (x % 2 === 1) {
           const tempi = (x + 1) / 2;
-          nodes[x - 1].x(head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27)).y(head[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27));
+          const tempx = head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = head[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27);
+          nodes[x - 1].x(tempx).y(tempy);
         } else {
           const tempi = x / 2;
-          nodes[x - 1].x(head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27)).y(head[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27));
+          const tempx = head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = head[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27);
+          nodes[x - 1].x(tempx).y(tempy);
         }
         const predicate = findRelationById(head[0].id() + '_' + temp.__data__.id()).predicate();
         addRelationship(head[0], nodes[x - 1], predicate);
@@ -715,6 +674,13 @@ function editnode() {
   }
   function saveModal() {
     tempvalue.__data__.caption(captionField.node().value);
+    if (tempvalue.__data__.caption() !== '') {
+      tempvalue.__data__.variable = false;
+      tempvalue.childNodes[1].setAttribute('stroke-dasharray', 'none');
+    } else {
+      tempvalue.__data__.variable = true;
+      tempvalue.childNodes[1].setAttribute('stroke-dasharray', '15');
+    }
     console.log(tempvalue.__data__.caption());
     tempvalue.childNodes[3].innerHTML = captionField.node().value;
     const person_name = captionField.node().value;
@@ -731,7 +697,6 @@ function editnode() {
     }
     cancelModal();
   }
-
 }
 
 function editRelationship() {
@@ -740,14 +705,24 @@ function editRelationship() {
   appendModalBackdrop();
   editor.classed( 'hide', false );
   const captionField = editor.select('#relationship_type');
+  captionField[0][0].parentElement.childNodes[0].focus();
   captionField.node().value = tempvalue.parentElement.childNodes[1].innerHTML || '';
+
   function saveModal() {
     const predicate = captionField.node().value;
     tempvalue.__data__.predicate(predicate);
+    if (tempvalue.__data__.predicate() !== '') {
+      tempvalue.__data__.variable = false;
+      tempvalue.parentElement.childNodes[0].setAttribute('stroke-dasharray', 'none');
+    } else {
+      tempvalue.__data__.variable = true;
+      tempvalue.parentElement.childNodes[0].setAttribute('stroke-dasharray', '10');
+    }
     const subject = tempvalue.__data__.start.caption();
     console.log(subject);
     tempvalue.parentElement.childNodes[1].innerHTML = captionField.node().value;
-    const sparql = dbr + dbo + dbp + 'SELECT ?peoples ?path WHERE {dbr:' + subject + ' dbo:' + predicate + ' ?peoples. ?peoples dbo:thumbnail ?path.}';
+    const sparqltext = 'SELECT ?peoples ?path WHERE {dbr:' + subject + ' dbo:' + predicate + ' ?peoples. ?peoples dbo:thumbnail ?path.}';
+    const sparql = dbr + dbo + dbp + sparqltext;
     d3sparql.query(endpoint, sparql, render);
     function render(json) {
       if ( json !== null && json.results.bindings.length !== 0) {// 请求成功
@@ -1026,6 +1001,5 @@ function scaleZoom() {
   yMax = yMax + 100;
   yMin = yMin - 150;
   const viewBox = xMin.toString() + ', ' + yMin.toString() + ', ' + (xMax - xMin).toString() + ', ' + (yMax - yMin).toString();
-  //console.log(viewBox);
   svg[0][0].setAttribute('viewBox', viewBox);
 }
