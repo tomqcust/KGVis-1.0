@@ -318,7 +318,7 @@ function createNode(x, y) {
     .attr('display', 'true');
 
     imagesss.append('circle')
-    .attr('class', 'node circle')
+    .attr('class', 'node_circle')
     .attr('stroke-dasharray', '15')
     .attr('id', function(d) {
       return 'id' + d.id();
@@ -392,7 +392,7 @@ function drawNodes(nodes) {
     .attr('display', 'true');
 
     imagesss.append('circle')
-    .attr('class', 'node circle')
+    .attr('class', 'node_circle')
     .attr('stroke-dasharray', function(d) {
       if (d.variable) {
         return '15';
@@ -592,7 +592,7 @@ function deletedNodeView(node) {
   if ( temp !== undefined) {
     temp.parentNode.parentNode.removeChild(temp.parentNode);
   }
-
+  scaleZoom();
 }
 
 function deleteShip(start, end) {
@@ -718,31 +718,52 @@ function editRelationship() {
       tempvalue.__data__.variable = true;
       tempvalue.parentElement.childNodes[0].setAttribute('stroke-dasharray', '10');
     }
-    const subject = tempvalue.__data__.start.caption();
-    console.log(subject);
+    let subject = '';
+    if (tempvalue.__data__.start.result() !== null) {
+       subject = 'VALUES ?x {';
+      for (const x of tempvalue.__data__.start.result()) {
+        subject += 'dbr:' + x.caption() + ' ';
+      }
+      subject += '} ?x';
+    } else {
+       subject = 'dbr:' + tempvalue.__data__.start.caption();
+    }
     tempvalue.parentElement.childNodes[1].innerHTML = captionField.node().value;
-    const sparqltext = 'SELECT ?peoples ?path WHERE {dbr:' + subject + ' dbo:' + predicate + ' ?peoples. ?peoples dbo:thumbnail ?path.}';
+    const sparqltext = 'SELECT ?peoples ?path WHERE {' + subject + ' dbo:' + predicate + ' ?peoples. OPTIONAL {?peoples dbo:thumbnail ?path.}}';
+    console.log(sparqltext);
     const sparql = dbr + dbo + dbp + sparqltext;
     d3sparql.query(endpoint, sparql, render);
     function render(json) {
-      if ( json !== null && json.results.bindings.length !== 0) {// 请求成功
+      console.log(json);
+      if ( json !== undefined && json.results.bindings.length !== 0) {// 请求成功
         console.log(json);
         const nodes = [];
         const node = tempvalue.__data__.end;
         const length = json.results.bindings.length;
-        tempvalue.__data__.end.caption('List ' + length);
-        const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
-        text.parentElement.childNodes[3].innerHTML = 'List ' + length;
+        if (length === 1) {
+          tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value.slice(28));
+          const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
+          text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value.slice(28);
+        } else {
+          tempvalue.__data__.end.caption('List ' + length);
+          const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
+          text.parentElement.childNodes[3].innerHTML = 'List ' + length;
+        }
         for (const x of json.results.bindings) {
           const temp = new Node();
           temp.caption(x.peoples.value.slice(28));
-          temp.imageurl(x.path.value);
+          if (x.path !== undefined) {
+            temp.imageurl(x.path.value);
+          }
+
           temp.id(dataset.highestId);
           dataset.highestId += 1;
           nodes.push(temp);
           dataset.nodes.push(temp);
         }
-        node.result(nodes);
+        if (length !== 1) {
+          node.result(nodes);
+        }
       } else {// 请求失敗
 
       }
@@ -978,7 +999,12 @@ function scaleZoom() {
   let xMin = -400;
   let yMax = 400;
   let yMin = -400;
-  for (const x of dataset.nodes) {
+  const nodesView = d3.selectAll('circle.node_circle')[0];
+  const nodes = [];
+  for (const y of nodesView) {
+    nodes.push(y.__data__);
+  }
+  for (const x of nodes) {
     if (x.x() > xMax) {
       xMax = x.x();
     }
