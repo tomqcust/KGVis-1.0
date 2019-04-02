@@ -547,15 +547,17 @@ function dragCircleMove(d) {
       const outline = new Relationship(node, tail);
       console.log('ceshi111');
       const ship = d3.selectAll('#id' + node.id() + '_' + tail.id());
-      const angle = node.angleTo(tail);
-      if ( outline.end.isLeftOf(outline.start)) {
-        ship[0][0].parentElement.childNodes[1].setAttribute('transform', 'rotate(180)');
-      } else {
-        ship[0][0].parentElement.childNodes[1].setAttribute('transform', null);
+      if (ship[0].length !== 0) {
+        const angle = node.angleTo(tail);
+        if ( outline.end.isLeftOf(outline.start)) {
+          ship[0][0].parentElement.childNodes[1].setAttribute('transform', 'rotate(180)');
+        } else {
+          ship[0][0].parentElement.childNodes[1].setAttribute('transform', null);
+        }
+        ship[0][0].setAttribute('d', outline.arrow.outline);
+        ship[0][0].parentElement.childNodes[1].setAttribute('x', side( outline ) * outline.arrow.apex.x);
+        ship[0][0].parentElement.setAttribute('transform', 'translate(' + node.ex() + ',' + node.ey() + ') rotate(' + angle + ')');
       }
-      ship[0][0].setAttribute('d', outline.arrow.outline);
-      ship[0][0].parentElement.childNodes[1].setAttribute('x', side( outline ) * outline.arrow.apex.x);
-      ship[0][0].parentElement.setAttribute('transform', 'translate(' + node.ex() + ',' + node.ey() + ') rotate(' + angle + ')');
     }
   }
   scaleZoom();
