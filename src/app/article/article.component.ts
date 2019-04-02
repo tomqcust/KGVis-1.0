@@ -773,8 +773,10 @@ function editRelationship() {
         if (length === 1) {
           if (json.results.bindings[0].peoples.value.substr(0, 28) === 'http://dbpedia.org/resource/') {
             tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value.slice(28));
+            tempvalue.__data__.end.imageurl(json.results.bindings[0].path.value);
             const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
             text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value.slice(28);
+            text.parentElement.childNodes[0].setAttribute('href', json.results.bindings[0].path.value);
           } else {
             tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value);
             const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
