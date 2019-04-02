@@ -35,14 +35,19 @@ export class ArticleComponent implements OnInit {
     private el: ElementRef
   ) { }
 
-  projectNameChanged(e) {
+  labelChanged(e) {
     const keycode = window.event ? e.keyCode : e.which;
     if (keycode === 13) {// 回车键
 
     }
   }
 
+  predicateChanged(e) {
+    const keycode = window.event ? e.keyCode : e.which;
+    if (keycode === 13) {// 回车键
 
+    }
+  }
 
   ngOnInit() {
     dataset.highestId += 1;
@@ -74,12 +79,29 @@ export class ArticleComponent implements OnInit {
               }
             }
           },
+       });
+    });
+
+      $(function() {
+        const tags = [
+          'influencedBy',
+          'region',
+          'notableIdea',
+          'philosophicalSchool',
+          'influenced',
+          'era',
+          'deathYear',
+          'birthYear'
+        ];
+        $( 'input#relationship_type' ).autocomplete({
+            minChars: 3,
+            source: tags
+        });
       });
-  });
-  }
+    }
 
   onClick() {
-    createNode(0, 0);
+    createNode(0, 100);
   }
 }
 
@@ -639,6 +661,7 @@ function editnode() {
     captionField[0][0].parentElement.childNodes[0].focus();
     editor.select('#edit_node_cancle').on('click', cancelModal);
     editor.select('#edit_node_save').on('click', saveModal);
+    editor.select('#edit_node_delete').on('click', deleteModal);
   } else {// 如果结果不为空
     if (!d3.select(this)[0][0].__data__.show) {// 如果结果没有展开
       console.log('xxxxxxxx');
@@ -697,6 +720,11 @@ function editnode() {
     }
     cancelModal();
   }
+  function deleteModal() {
+    deletedNodeView(temp.__data__);
+    deletedShipView(temp.__data__);
+    cancelModal();
+  }
 }
 
 function editRelationship() {
@@ -741,9 +769,16 @@ function editRelationship() {
         const node = tempvalue.__data__.end;
         const length = json.results.bindings.length;
         if (length === 1) {
-          tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value.slice(28));
-          const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
-          text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value.slice(28);
+          if (json.results.bindings[0].peoples.value.substr(0, 28) === 'http://dbpedia.org/resource/') {
+            tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value.slice(28));
+            const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
+            text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value.slice(28);
+          } else {
+            tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value);
+            const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
+            text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value;
+          }
+
         } else {
           tempvalue.__data__.end.caption('List ' + length);
           const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
