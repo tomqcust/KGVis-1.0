@@ -5,6 +5,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ArticleComponent } from './article/article.component';
 import { OperatorComponent } from './operator/operator.component';
+import { UserStudyComponent } from './user-study/user-study.component';
 
 
 @NgModule({
@@ -12,6 +13,7 @@ import { OperatorComponent } from './operator/operator.component';
     AppComponent,
     ArticleComponent,
     OperatorComponent,
+    UserStudyComponent,
 
   ],
   imports: [
@@ -21,4 +23,5 @@ import { OperatorComponent } from './operator/operator.component';
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+ }

@@ -19,7 +19,7 @@ body {background-color: #D6D6D6; padding: 0; margin: 0; font-family: "Arial", "H
 #apple a:active { color:#FFFF00; text-decoration:none;}
 #container {width: 1000px; height: auto; margin: 0 auto 20px auto; padding: 0; background-color: #FFFFFF;}
 #header {height: 200px; width: 1000px;}
-#main {height: auto; width: 1300px;}
+#main {height: auto; width: 1000px;}
 #menu {float: left; width: 199px; margin: 0; padding: 0; border-right: 1px solid #CCCCCC;}
 #menu .item {display: block; margin: 2px; padding: 10px;}
 #menu a {text-decoration: none;}

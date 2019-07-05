@@ -7,6 +7,7 @@ const dbr = 'PREFIX dbr:<http://dbpedia.org/resource/> ';
 const dbo = 'PREFIX dbo:<http://dbpedia.org/ontology/> ';
 const dbp = 'PREFIX dbp:<http://dbpedia.org/property/> ';
 const rdf = 'PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>';
+const xsd = 'PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>';
 const dataset = {
   nodes: [],
   relationships: [],
@@ -38,6 +39,7 @@ export class ArticleComponent implements OnInit {
   labelChanged(e) {
     const keycode = window.event ? e.keyCode : e.which;
     if (keycode === 13) {// 回车键
+      console.log('回车');
 
     }
   }
@@ -51,6 +53,24 @@ export class ArticleComponent implements OnInit {
 
   ngOnInit() {
     dataset.highestId += 1;
+    let s = '';
+    s += ' 网页可见区域宽：' + document.body.clientWidth+'\n';
+    s += ' 网页可见区域高：' + document.body.clientHeight+'\n';
+    s += ' 网页可见区域宽：' + document.body.offsetWidth + ' (包括边线和滚动条的宽)'+'\n';
+    s += ' 网页可见区域高：' + document.body.offsetHeight + ' (包括边线的宽)'+'\n';
+    s += ' 网页正文全文宽：' + document.body.scrollWidth+'\n';
+    s += ' 网页正文全文高：' + document.body.scrollHeight+'\n';
+    s += ' 网页被卷去的高(ff)：' +  document.body.scrollTop+'\n';
+    s += ' 网页被卷去的高(ie)：' + document.documentElement.scrollTop+'\n';
+    s += ' 网页被卷去的左：' + document.body.scrollLeft+'\n';
+    s += ' 网页正文部分上：' + window.screenTop+'\n';
+    s += ' 网页正文部分左：' + window.screenLeft+'\n';
+    s += ' 屏幕分辨率的高：' + window.screen.height+'\n';
+    s += ' 屏幕分辨率的宽：' + window.screen.width+'\n';
+    s += ' 屏幕可用工作区高度：' + window.screen.availHeight+'\n';
+    s += ' 屏幕可用工作区宽度：' + window.screen.availWidth+'\n';
+    s += ' 你的屏幕设置是 ' + window.screen.colorDepth +' 位彩色'+'\n';
+    console.log(s);
     const node = new Node().x(0).y(0).id(dataset.highestId - 1).caption('Karl_Marx');
     node.imageurl('https://commons.wikimedia.org/wiki/Special:FilePath/Karl_Marx_001.jpg?width=300');
     node.variable = false;
@@ -62,7 +82,13 @@ export class ArticleComponent implements OnInit {
           minChars: 3,
           source: function( request, response ) {
             if ( request.term.length < 3) {
-              return 0;
+              const resultss = 'waiting...';
+              response( $.map( resultss, function( item ) {
+                return {
+                  label: item,
+                  value: item
+                };
+              }));
             }
             const sparql = dbr + dbo + dbp + rdf + ' SELECT ?person WHERE {?person rdf:type dbo:Person. FILTER( regex ((?person), \'' + request.term.toString() + '\' ))} LIMIT 20';
             d3sparql.query(endpoint, sparql, render);
@@ -76,6 +102,7 @@ export class ArticleComponent implements OnInit {
                   };
                 }));
               } else { // 请求失败
+
               }
             }
           },
@@ -91,6 +118,7 @@ export class ArticleComponent implements OnInit {
           'influenced',
           'era',
           'deathYear',
+          'birthDate',
           'birthYear'
         ];
         $( 'input#relationship_type' ).autocomplete({
@@ -105,8 +133,20 @@ export class ArticleComponent implements OnInit {
   }
 }
 
+$(function() {
+  const optionsa = {items: [
+    //{header: '第一个链接'},
+    {text: 'Expand', onclick: expandNode},
+    {text: 'Collapse', onclick: collapseNode},
+    {text: 'Filter', onclick: filterNode }
+  ],
+  menuId: 0};
+  $('.node_circle').contextify(optionsa);
+});
+
 const Node  = function() {
   let position = {x: 0, y: 0};
+  let filter = '';
   let caption;
   let imageurl;
   let id;
@@ -122,6 +162,14 @@ const Node  = function() {
       return this;
   }
   return position.x;
+  };
+
+  this.filter = function(x) {
+    if (arguments.length === 1) {
+      filter = x;
+      return this;
+  }
+  return filter;
   };
 
   this.result = function(nodes) {
@@ -325,6 +373,7 @@ function createNode(x, y) {
   const imagesss = images.enter().append('g').attr('class', 'image_test');
   console.log(x, y);
 
+  let tempId = 'id';
   imagesss.append('image').attr('class', 'image-class')
     .attr('href', '')
     .attr('x', function(d) {
@@ -343,6 +392,7 @@ function createNode(x, y) {
     .attr('class', 'node_circle')
     .attr('stroke-dasharray', '15')
     .attr('id', function(d) {
+      tempId = d.id();
       return 'id' + d.id();
     })
     .attr('r', function(d) {
@@ -392,12 +442,39 @@ function createNode(x, y) {
     .text(function(d) {
       return d.caption();
     });
+    const optionsa = {items: [
+      //{header: '第一个链接'},
+      {text: 'Expand', onclick: expandNode},
+      {text: 'Collapse', onclick: collapseNode },
+      {text: 'Filter', onclick: filterNode }
+    ],
+    menuId: tempId};
+    $('.node_circle').contextify(optionsa);
     return images;
 }
 
 function drawNodes(nodes) {
+console.log('before');
+  console.log(nodes);
+  console.log(dataset.nodes);
+  /*const force = d3.layout.force()
+        .nodes(dataset.nodes)
+        .links(dataset.relationships)
+        .size([1960, 800])
+        .linkDistance([250])
+        .charge([-500])
+        .theta(0.1)
+        .gravity(0.05)
+        .start();*/
+  console.log('after');
+  console.log(dataset.nodes);
   const images = d3.selectAll('#d3graph').selectAll('circle.g').data(nodes);
   const imagesss = images.enter().append('g').attr('class', 'image_test');
+
+  let tempId = '';
+
+
+
   imagesss.append('image').attr('class', 'image-class')
     .attr('href', function(d) {
       return d.imageurl();
@@ -413,7 +490,7 @@ function drawNodes(nodes) {
     .attr('clip-path', 'circle(60px at 75px 60px)')
     .attr('display', 'true');
 
-    imagesss.append('circle')
+  imagesss.append('circle')
     .attr('class', 'node_circle')
     .attr('stroke-dasharray', function(d) {
       if (d.variable) {
@@ -423,6 +500,7 @@ function drawNodes(nodes) {
       }
     })
     .attr('id', function(d) {
+      tempId = d.id();
       return 'id' + d.id();
     })
     .attr('r', function(d) {
@@ -440,7 +518,7 @@ function drawNodes(nodes) {
     .call(d3.behavior.drag().origin(dragCircle).on('drag', dragCircleMove))
     .on( 'dblclick', editnode);
 
-    imagesss.append('circle')
+  imagesss.append('circle')
     .attr('class', 'node ring')
     .attr('r', function(d) {
       return 65;
@@ -456,7 +534,7 @@ function drawNodes(nodes) {
     })
     .call(d3.behavior.drag().origin(touchRing).on('drag', dragRingMove));
 
-    imagesss.append('text')
+  imagesss.append('text')
     .attr('class', 2)
     .attr('text-anchor', 'middle')
     .attr('alignment-baseline', 'central')
@@ -473,13 +551,21 @@ function drawNodes(nodes) {
       return d.caption();
     });
     scaleZoom();
+    const optionsa = {items: [
+      //{header: '第一个链接'},
+      {text: 'Expand', onclick: expandNode},
+      {text: 'Collapse', onclick: collapseNode},
+      {text: 'Filter', onclick: filterNode }
+    ],
+    menuId: tempId};
+    $('.node_circle').contextify(optionsa);
     return images;
 }
 
 function dragCircle() {
   console.log('222');
   const t = d3.select(this);
-  console.log(t[0][0].parentElement);
+  console.log(t[0][0].__data__.caption());
   return {
       x: t[0][0].parentElement.childNodes[1].getAttribute('cx'),
       y: t[0][0].parentElement.childNodes[1].getAttribute('cy'),
@@ -567,37 +653,119 @@ function dragRingMove(d) {
   const x = d3.event.x;
   const y = d3.event.y;
   const headNode = d;
-  const tailNode = dataset.nodes[dataset.highestId - 1];
+  let tailNode = dataset.nodes[dataset.highestId - 1];
+  if (tailNode.id() === headNode.id()) {
+    return;
+  }
   const tail = d3.selectAll('#id'  + tailNode.id())[0][0].parentElement;
   const relation = d3.selectAll('#id' + headNode.id() + '_' + tailNode.id());
+  console.log('relation');
+  console.log(dataset.relationships);
+
   if (!tailNode.prototypePosition) {
     tailNode.prototypePosition = {
       x: tailNode.x(),
       y: tailNode.y()
     };
   }
-  tailNode.prototypePosition.x += x / tailNode.internalScale;
-  tailNode.prototypePosition.y += y / tailNode.internalScale;
   tailNode.x(x);
   tailNode.y(y);
+  //判断新点是否在旧点附近距离为650
+  const allNodes = d3.selectAll('.node_circle')[0];
+  allNodes.pop();
+  let i = 1;
+  for (const temp of allNodes) {
+    console.log('第' + i + '次');
+    if (temp.__data__ === headNode) {
+      console.log('第' + i + '次');
+      break;
+    }
+    if (temp.__data__ === tailNode) {
+      console.log('第' + i + '次');
+      break;
+    }
+    const xtemp = temp.__data__.x();
+    const ytemp = temp.__data__.y();
+    console.log('x' + x + 'y' + y + 'tempx' + xtemp + 'tempy' + ytemp);
+    const distance = (x - xtemp) * (x - xtemp) + (y - ytemp) * (y - ytemp);
+    console.log('第' + i + '次' + distance);
+    i = i + 1;
+
+    if (distance < 650) {
+      console.log('删除点');
+      console.log(tailNode.id());
+      deletedNodeView(tailNode);
+      tailNode = temp.__data__;
+      console.log(relation[0][0].__data__.start.id() + '+' + relation[0][0].__data__.end.id());
+      relation[0][0].parentElement.childNodes[1].setAttribute('id', 'id' + headNode.id() + '_' + tailNode.id());
+      relation[0][0].setAttribute('id', 'id' + headNode.id() + '_' + tailNode.id());
+      relation[0][0].__data__.end.id(tailNode.id());
+      dataset.nodes.pop();
+      dataset.highestId -= 1;
+      console.log(dataset.relationships);
+      let newRelationa = dataset.relationships.pop();
+      newRelationa.end = tailNode;
+      newRelationa.id(newRelationa.start.id() + '_' + newRelationa.end.id());
+      dataset.relationships.push(newRelationa);
+      console.log('newRelation');
+      console.log(newRelationa.start.id() + '+' + newRelationa.end.id());
+      console.log(dataset.relationships);
+      // 圆
+      tail.childNodes[1].setAttribute('cx',  tailNode.x() );
+      tail.childNodes[1].setAttribute('cy',  tailNode.y() );
+      // 圆环
+      tail.childNodes[2].setAttribute('cx',  tailNode.x() );
+      tail.childNodes[2].setAttribute('cy',  tailNode.y() );
+      // 图片
+      tail.childNodes[0].setAttribute('x',  (parseInt(tailNode.x(), 10) - 75).toString());
+      tail.childNodes[0].setAttribute('y',  (parseInt(tailNode.y(), 10) - 60).toString() );
+      const tempxa = ((parseInt(tailNode.x(), 10)) * 0.001 + 75).toString();
+      const tempya = ((parseInt(tailNode.y(), 10)) * 0.001 + 60).toString();
+      tail.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + tempxa + 'px ' + tempya + 'px)' );
+      // 文字
+      tail.childNodes[3].setAttribute('x',  (parseInt(tailNode.x(), 10)).toString());
+      tail.childNodes[3].setAttribute('y',  (parseInt(tailNode.y(), 10) - 95).toString() );
+      // 点的移动影响边
+      const outlinea = new Relationship(headNode, tailNode);
+      console.log('dragRingMove111');
+      console.log(outlinea);
+      const anglea = headNode.angleTo(tailNode);
+      if ( outlinea.end.isLeftOf(outlinea.start)) {
+        relation[0][0].parentElement.childNodes[1].setAttribute('transform', 'rotate(180)');
+      } else {
+        relation[0][0].parentElement.childNodes[1].setAttribute('transform', null);
+      }
+      relation[0][0].setAttribute('d', outlinea.arrow.outline);
+      relation[0][0].parentElement.childNodes[1].setAttribute('x', side( outlinea ) * outlinea.arrow.apex.x);
+      relation[0][0].parentElement.setAttribute('transform', 'translate(' + headNode.ex() + ',' + headNode.ey() + ') rotate(' + anglea + ')');
+      scaleZoom();
+      return;
+    } else {
+      tailNode.prototypePosition.x += x / tailNode.internalScale;
+      tailNode.prototypePosition.y += y / tailNode.internalScale;
+      tailNode.x(x);
+      tailNode.y(y);
+    }
+  }
+  console.log(tailNode.x());
   // 圆
-  tail.childNodes[1].setAttribute('cx',  x );
-  tail.childNodes[1].setAttribute('cy',  y );
+  tail.childNodes[1].setAttribute('cx',  tailNode.x() );
+  tail.childNodes[1].setAttribute('cy',  tailNode.y() );
   // 圆环
-  tail.childNodes[2].setAttribute('cx',  x );
-  tail.childNodes[2].setAttribute('cy',  y );
+  tail.childNodes[2].setAttribute('cx',  tailNode.x() );
+  tail.childNodes[2].setAttribute('cy',  tailNode.y() );
   // 图片
-  tail.childNodes[0].setAttribute('x',  (parseInt(x, 10) - 75).toString());
-  tail.childNodes[0].setAttribute('y',  (parseInt(y, 10) - 60).toString() );
-  const tempx = ((parseInt(x, 10)) * 0.001 + 75).toString();
-  const tempy = ((parseInt(y, 10)) * 0.001 + 60).toString();
+  tail.childNodes[0].setAttribute('x',  (parseInt(tailNode.x(), 10) - 75).toString());
+  tail.childNodes[0].setAttribute('y',  (parseInt(tailNode.y(), 10) - 60).toString() );
+  const tempx = ((parseInt(tailNode.x(), 10)) * 0.001 + 75).toString();
+  const tempy = ((parseInt(tailNode.y(), 10)) * 0.001 + 60).toString();
   tail.childNodes[0].setAttribute('clip-path', 'circle(60px at ' + tempx + 'px ' + tempy + 'px)' );
   // 文字
-  tail.childNodes[3].setAttribute('x',  (parseInt(x, 10)).toString());
-  tail.childNodes[3].setAttribute('y',  (parseInt(y, 10) - 95).toString() );
+  tail.childNodes[3].setAttribute('x',  (parseInt(tailNode.x(), 10)).toString());
+  tail.childNodes[3].setAttribute('y',  (parseInt(tailNode.y(), 10) - 95).toString() );
   // 点的移动影响边
   const outline = new Relationship(headNode, tailNode);
-  console.log('ceshi111');
+  console.log('dragRingMove111');
   console.log(outline);
   const angle = headNode.angleTo(tailNode);
   if ( outline.end.isLeftOf(outline.start)) {
@@ -647,17 +815,66 @@ function deletedShipView(node) {
   }
     // deleteShip(node, x);
 }
+function collapseNode() {
+  console.log('doubleclick');
+  let temp = d3.select(this)[0][0];
+  if ( temp.tagName === 'A') {
+    temp = d3.selectAll('#id' + temp.parentNode.parentNode.id)[0][0];
+  }
+  if (temp.__data__.show) {
+    const nodes = temp.__data__.result();
+    for (const x of nodes) {
+      deletedNodeView(x);
+      deletedShipView(x);
+    }
+    temp.__data__.show = false;
+  }
+}
+function expandNode() {
+  const r = 800;
+  let temp = d3.select(this)[0][0];
+  if ( temp.tagName === 'A') {
+    temp = d3.selectAll('#id' + temp.parentNode.parentNode.id)[0][0];
+  }
+  if (!temp.__data__.show) {
+    console.log('expandnode');
+    const heads = getHeadNode(temp.__data__);
+    const nodes = temp.__data__.result();
+    for (let x = 1; x < nodes.length + 1; x++) {
+      if (x % 2 === 1) {
+        const tempi = (x + 1) / 2;
+        const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+        const tempy = heads[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27);
+        nodes[x - 1].x(tempx).y(tempy);
+      } else {
+        const tempi = x / 2;
+        const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+        const tempy = heads[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27);
+        nodes[x - 1].x(tempx).y(tempy);
+      }
+      for (const y of heads) {
+        const predicate = findRelationById(y.id() + '_' + temp.__data__.id()).predicate();
+        addRelationship(y, nodes[x - 1], predicate);
+      }
+    }
+    temp.__data__.show = true;
+    drawNodes(temp.__data__.result());
+    console.log(dataset.nodes);
+  }
+}
 
 function editnode() {
   const r = 800;
-  console.log(d3.select(this)[0][0].__data__.result());
-  console.log(d3.select(this));
-  const temp = d3.select(this)[0][0];
+  let temp = d3.select(this)[0][0];
+  if ( temp.tagName === 'A') {
+    temp = d3.selectAll('#id' + temp.parentNode.parentNode.id)[0][0];
+  }
+  console.log(temp);
   const tempvalue = temp.parentElement;
   const editor = d3.select('.pop-up-editor.node');
   const captionField = editor.select('#node_caption');
   captionField.node().value = tempvalue.childNodes[3].innerHTML || '';
-  if (d3.select(this)[0][0].__data__.result() === null) {// 如果结果为空
+  if (temp.__data__.result() === null) {// 如果结果为空
     // appendModalBackdrop();
     editor.classed( 'hide', false );
     captionField[0][0].parentElement.childNodes[0].focus();
@@ -665,36 +882,39 @@ function editnode() {
     editor.select('#edit_node_save').on('click', saveModal);
     editor.select('#edit_node_delete').on('click', deleteModal);
   } else {// 如果结果不为空
-    if (!d3.select(this)[0][0].__data__.show) {// 如果结果没有展开
+    if (!temp.__data__.show) {// 如果结果没有展开
       console.log('xxxxxxxx');
-      const head = getHeadNode(d3.select(this)[0][0].__data__);
-      const nodes = d3.select(this)[0][0].__data__.result();
+      const heads = getHeadNode(temp.__data__);
+      const nodes = temp.__data__.result();
+      console.log(nodes);
       for (let x = 1; x < nodes.length + 1; x++) {
         if (x % 2 === 1) {
           const tempi = (x + 1) / 2;
-          const tempx = head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
-          const tempy = head[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27);
+          const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = heads[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27);
           nodes[x - 1].x(tempx).y(tempy);
         } else {
           const tempi = x / 2;
-          const tempx = head[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
-          const tempy = head[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27);
+          const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = heads[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27);
           nodes[x - 1].x(tempx).y(tempy);
         }
-        const predicate = findRelationById(head[0].id() + '_' + temp.__data__.id()).predicate();
-        addRelationship(head[0], nodes[x - 1], predicate);
+        for (const y of heads) {
+          const predicate = findRelationById(y.id() + '_' + temp.__data__.id()).predicate();
+          addRelationship(y, nodes[x - 1], predicate);
+        }
       }
-      d3.select(this)[0][0].__data__.show = true;
-      drawNodes(d3.select(this)[0][0].__data__.result());
+      temp.__data__.show = true;
+      drawNodes(temp.__data__.result());
       console.log(dataset.nodes);
     } else {// 如果结果展开
       console.log('doubleclick');
-      const nodes = d3.select(this)[0][0].__data__.result();
+      const nodes = temp.__data__.result();
       for (const x of nodes) {
         deletedNodeView(x);
         deletedShipView(x);
       }
-      d3.select(this)[0][0].__data__.show = false;
+      temp.__data__.show = false;
     }
   }
   function saveModal() {
@@ -729,6 +949,91 @@ function editnode() {
   }
 }
 
+function filterNode() {
+  let tempvalue = d3.select(this)[0][0];
+  if ( tempvalue.tagName === 'A') {
+    tempvalue = d3.selectAll('#id' + tempvalue.parentNode.parentNode.id)[0][0];
+  }
+  const editor = d3.select('.pop-up-editor.filter');
+  appendModalBackdrop();
+  editor.classed( 'hide', false );
+  const filterType = editor.select('#filter_properties');
+  filterType[0][0].parentElement.childNodes[0].focus();
+  console.log(tempvalue.__data__);
+  filterType.node().value = tempvalue.__data__.filter() || '';
+
+  editor.select('#edit_filter_cancle').on('click', cancelModal);
+  editor.select('#edit_filter_save').on('click', saveModal);
+
+  function saveModal() {
+    const filter = filterType.node().value;
+    console.log(filter);
+    tempvalue.__data__.filter(filter);
+    const filtera = filter.split('>')[0];
+    const filterb = filter.split('>')[1];
+    console.log(filter);
+    const nodes = tempvalue.__data__.result();
+    let subject = '';
+    let sparqltext = 'SELECT distinct ?x ?path WHERE {';
+    if (nodes !== null) {
+      console.log(nodes);
+      subject = 'VALUES ?x {';
+     for (const x of nodes) {
+       subject += 'dbr:' + x.caption() + ' ';
+     }
+     subject += '} ?x';
+   } else {
+      //subject = 'dbr:' + nodes.caption();
+   }
+   sparqltext += subject + ' dbo:' + filtera + ' ?peoples. optional {?x dbo:thumbnail ?path.} filter(?peoples>\"' + filterb + '-01-01\"^^xsd:date)}';
+   const sparql = dbr + dbo + dbp + xsd + sparqltext;
+   console.log(sparql);
+   const newNodes = [];
+   d3sparql.query(endpoint, sparql, render);
+   function render(json) {
+     console.log(json);
+     if ( json !== undefined && json.results.bindings.length !== 0) {// 请求成功
+      const length = json.results.bindings.length;
+      const text = d3.selectAll('#id' + tempvalue.__data__.id())[0][0];
+      if (length === 1) {
+        if (json.results.bindings[0].x.value.substr(0, 28) === 'http://dbpedia.org/resource/') {
+            tempvalue.__data__.caption(json.results.bindings[0].x.value.slice(28));
+            if (json.results.bindings[0].path !== undefined) {
+              tempvalue.__data__.imageurl(json.results.bindings[0].path.value);
+              text.parentElement.childNodes[0].setAttribute('href', json.results.bindings[0].path.value);
+            }
+            text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].x.value.slice(28);
+          } else {
+            tempvalue.__data__.caption(json.results.bindings[0].x.value);
+            text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].x.value;
+          }
+          tempvalue.__data__.result(null);
+          text.parentElement.childNodes[1].setAttribute('stroke-dasharray', 'none');
+      } else {
+        tempvalue.__data__.caption('List ' + length);
+        text.parentElement.childNodes[3].innerHTML = 'List ' + length;
+        for (const x of json.results.bindings) {
+          const temp = new Node();
+          temp.caption(x.x.value.slice(28));
+          if (x.path !== undefined) {
+            temp.imageurl(x.path.value);
+          }
+          newNodes.push(temp);
+        }
+        tempvalue.__data__.result(newNodes);
+      }
+    } else {
+      tempvalue.__data__.caption('NULL');
+      const text = d3.selectAll('#id' + tempvalue.__data__.id())[0][0];
+      text.parentElement.childNodes[3].innerHTML = 'NULL';
+      tempvalue.__data__.result(null);
+      text.parentElement.childNodes[1].setAttribute('stroke-dasharray', '15');
+    }
+   }
+    cancelModal();
+  }
+}
+
 function editRelationship() {
   const tempvalue = d3.select(this)[0][0];
   const editor = d3.select('.pop-up-editor.relationship');
@@ -739,7 +1044,7 @@ function editRelationship() {
   captionField.node().value = tempvalue.parentElement.childNodes[1].innerHTML || '';
 
   function saveModal() {
-    const predicate = captionField.node().value;
+    let predicate = captionField.node().value;
     tempvalue.__data__.predicate(predicate);
     if (tempvalue.__data__.predicate() !== '') {
       tempvalue.__data__.variable = false;
@@ -749,31 +1054,46 @@ function editRelationship() {
       tempvalue.parentElement.childNodes[0].setAttribute('stroke-dasharray', '10');
     }
     let subject = '';
-    if (tempvalue.__data__.start.result() !== null) {
-       subject = 'VALUES ?x {';
-      for (const x of tempvalue.__data__.start.result()) {
-        subject += 'dbr:' + x.caption() + ' ';
-      }
-      subject += '} ?x';
-    } else {
-       subject = 'dbr:' + tempvalue.__data__.start.caption();
+    //console.log('获取头实体集合');
+    //console.log(getHeadNode(tempvalue.__data__.end));
+    const headNodes = getHeadNode(tempvalue.__data__.end);
+    //console.log('获取入边谓语');
+    //const temmp = dataset.relationships.pop();
+    //console.log(temmp.id());
+    //dataset.relationships.push(temmp);
+    let sparqltext = 'SELECT ?peoples ?path WHERE {';
+    for (const temp of headNodes) {
+
+      predicate = findRelationById(temp.id() + '_' + tempvalue.__data__.end.id()).predicate();
+     // console.log(findRelationById(temp.id() + '_' + tempvalue.__data__.end.id()).predicate());
+      if (temp.result() !== null) {
+        subject = 'VALUES ?x {';
+       for (const x of temp.result()) {
+         subject += 'dbr:' + x.caption() + ' ';
+       }
+       subject += '} ?x';
+     } else {
+        subject = 'dbr:' + temp.caption();
+     }
+     sparqltext += subject + ' dbo:' + predicate + ' ?peoples.';
     }
+    sparqltext += 'OPTIONAL {?peoples dbo:thumbnail ?path.}}';
     tempvalue.parentElement.childNodes[1].innerHTML = captionField.node().value;
-    const sparqltext = 'SELECT ?peoples ?path WHERE {' + subject + ' dbo:' + predicate + ' ?peoples. OPTIONAL {?peoples dbo:thumbnail ?path.}}';
+    //const sparqltext = 'SELECT ?peoples ?path WHERE {' + subject + ' dbo:' + predicate + ' ?peoples. OPTIONAL {?peoples dbo:thumbnail ?path.}}';
     console.log(sparqltext);
     const sparql = dbr + dbo + dbp + sparqltext;
     d3sparql.query(endpoint, sparql, render);
     function render(json) {
       console.log(json);
+      const node = tempvalue.__data__.end;
+      const nodes = [];
       if ( json !== undefined && json.results.bindings.length !== 0) {// 请求成功
         console.log(json);
-        const nodes = [];
-        const node = tempvalue.__data__.end;
         const length = json.results.bindings.length;
+        const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
         if (length === 1) {
           if (json.results.bindings[0].peoples.value.substr(0, 28) === 'http://dbpedia.org/resource/') {
             tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value.slice(28));
-            const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
             if (json.results.bindings[0].path !== undefined) {
               tempvalue.__data__.end.imageurl(json.results.bindings[0].path.value);
               text.parentElement.childNodes[0].setAttribute('href', json.results.bindings[0].path.value);
@@ -781,14 +1101,14 @@ function editRelationship() {
             text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value.slice(28);
           } else {
             tempvalue.__data__.end.caption(json.results.bindings[0].peoples.value);
-            const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
             text.parentElement.childNodes[3].innerHTML = json.results.bindings[0].peoples.value;
           }
-
+          text.parentElement.childNodes[1].setAttribute('stroke-dasharray', 'none');
         } else {
           tempvalue.__data__.end.caption('List ' + length);
-          const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
           text.parentElement.childNodes[3].innerHTML = 'List ' + length;
+          text.parentElement.childNodes[1].setAttribute('stroke-dasharray', '15');
+          text.parentElement.childNodes[0].setAttribute('href', '');
         }
         for (const x of json.results.bindings) {
           const temp = new Node();
@@ -796,7 +1116,6 @@ function editRelationship() {
           if (x.path !== undefined) {
             temp.imageurl(x.path.value);
           }
-
           temp.id(dataset.highestId);
           dataset.highestId += 1;
           nodes.push(temp);
@@ -806,7 +1125,12 @@ function editRelationship() {
           node.result(nodes);
         }
       } else {// 请求失敗
-
+        tempvalue.__data__.end.caption('NULL');
+        const text = d3.selectAll('#id' + tempvalue.__data__.end.id())[0][0];
+        text.parentElement.childNodes[3].innerHTML = 'NULL';
+        text.parentElement.childNodes[1].setAttribute('stroke-dasharray', '15');
+        text.parentElement.childNodes[0].setAttribute('href', '');
+        node.result(null);
       }
       cancelModal();
     }
@@ -844,6 +1168,7 @@ function getRelationShip(start, end) {
 function getTailNode(node) {
   const tailNodes = [];
   for (const x of dataset.relationships) {
+    console.log(x.start.id() + '+' + x.end.id());
     if ( x.start.id() === node.id()) {
       tailNodes.push(x.end);
     }
