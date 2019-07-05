@@ -11,7 +11,7 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
     ```
 3. Install
     ```
-    cd hello-world
+    cd KGVis-1.0
     npm install
     ```
 3. Start
