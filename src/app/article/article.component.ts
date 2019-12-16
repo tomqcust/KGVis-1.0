@@ -1,4 +1,5 @@
 import { Component, OnInit, ElementRef} from '@angular/core';
+import { NONE_TYPE } from '@angular/compiler/src/output/output_ast';
 declare var $;
 declare var d3;
 declare var d3sparql;
@@ -131,6 +132,242 @@ export class ArticleComponent implements OnInit {
   onClick() {
     createNode(0, 100);
   }
+
+  d3force() {
+    //力学背景
+    const editor = d3.select('.pop-up-editor.force');
+    if (editor[0][0].classList[3] === 'hide') {
+      editor.classed('hide', false);
+
+      var nodeset = [];
+      var edgeset = [];
+      const nodes = d3.selectAll('.image_test');
+      console.log('点');
+      for (const node of nodes[0]) {
+        const temp_node = node.__data__;
+        const temp = nodeset.indexOf(temp_node);
+        console.log(temp);
+        nodeset.push(temp_node);
+      }
+
+      const edges = d3.selectAll('.relationship_view');
+      console.log('边');
+      for (const edge of edges[0]) {
+         edge.source = nodeset.indexOf(edge.__data__.start);
+         edge.target = nodeset.indexOf(edge.__data__.end);
+         const temp_edge = edge;
+         edgeset.push(temp_edge);
+       }
+      const force = d3.layout.force()
+                           .nodes(nodeset)		// 指定节点数组
+                           .links(edgeset)		// 指定连线数组
+                           .size([800, 800])	// 指定范围
+                           .linkDistance(800)	// 指定连线长度
+                           .charge(-6000);	// 相互之间的作用力
+      force.start();
+
+      // var svg_edges = d3.selectAll('#d3graph_force').selectAll("line")
+      //     .data(edgeset)
+      //     .enter()
+      //     .append("line")
+      //     .style("stroke","#ccc")
+      //     .style("stroke-width",1);
+      //边
+      const edge_force = d3.selectAll('#d3graph_force').selectAll('edge.g')
+          .data(edgeset)
+          .enter()
+          .append('g')
+          .attr('class', 'edges-force')
+          .attr('transform', function(d) {
+            const dx = d.__data__.end.ex() - d.__data__.start.ex();
+            const dy = d.__data__.end.ey() - d.__data__.start.ey();
+            console.log(d);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            return 'translate(' + d.__data__.start.ex() + ',' + d.__data__.start.ey() + ') rotate(' + angle + ')';
+          });
+
+      const edge = edge_force.append('path')
+        .attr('class', 'edge-force')
+        .attr('fill', 'rgb(255, 255, 255)')
+        // .attr('id', function(d) {
+        //   return 'id' + d.id();
+        // })
+        .attr('stroke', 'rgb(0, 0, 0)')
+        .attr('stroke-dasharray', function(d) {
+          console.log('force_data');
+          console.log(d.__data__);
+          if (d.__data__.variable) {
+            return '10';
+          } else {
+            return 'none';
+          }
+        })
+        .attr('stroke-width', '3px')
+        .attr('d', function(d) {
+          console.log(d.__data__.arrow.outline);
+          return d.__data__.arrow.outline; });
+      const edge_text = edge_force.append('text')
+        .attr('class', 'type')
+        .attr('transform', function(d) {
+          return rotateIfRightToLeft_force(d.__data__);
+        })
+        .attr('text-anchor', 'middle')
+        .attr('baseline-shift', '30%')
+        .attr('alignment-baseline', 'alphabetic')
+        .attr('x', function(d) { return side_force( d.__data__ ) * d.__data__.arrow.apex.x; } )
+        .attr('y', 0 )
+        .attr( 'font-size', '50px')
+        .attr( 'font-family', '"Gill Sans", "Gill Sans MT", Calibri, sans-serif')
+        .text( function ( d ) { return  d.__data__.predicate(); } )
+        .attr('transform', function(d){
+          if(d.__data__.end.ex() > d.__data__.start.ex()){
+            return null;
+          } else {
+            return 'rotate(180)';
+          }
+        });
+
+      //点
+      const node_force = d3.selectAll('#d3graph_force').selectAll('circle.g')
+          .data(nodeset)
+          .enter()
+          .append('g')
+          .attr('class', 'nodes-force');
+
+      //图片
+      const image = node_force.append('image').attr('class', 'image-force')
+        .attr('href', function(d) {
+          return d.imageurl();
+        })
+        .attr('x', function(d) {
+          return d.x - 75;
+        })
+        .attr('y', function(d) {
+          return d.y - 60;
+        })
+        .attr('height', '150')
+        .attr('width', '150')
+        .attr('clip-path', 'circle(60px at 75px 60px)')
+        .attr('display', 'true');
+
+      //圆环
+      const circle = node_force.append('circle')
+        .attr('class', 'circle-force')
+        .attr('stroke-dasharray', function(d) {
+          console.log('#########');
+          console.log(d.variable);
+          if (d.variable === undefined) {
+            return 'none';
+          } else if (d.variable) {
+            return '15';
+          } else {
+            return 'none';
+          }
+        })
+        .attr('id', function(d) {
+          return 'id' + d.id();
+        })
+        .attr('r', function(d) {
+          return 60;
+        })
+        .attr('stroke', 'rgb(0,0,0)')
+        .attr('stroke-width', '8px')
+        .attr('fill', 'rgba(255, 255, 255, 0)')
+        .attr('cx', function(d) {
+          return d.x;
+        })
+        .attr('cy', function(d) {
+          return d.y;
+        })
+        .call(force.drag);
+
+      //环
+      const ring = node_force.append('circle')
+        .attr('class', 'ring-force')
+        .attr('r', function(d) {
+          return 65;
+        })
+        .attr('stroke', 'rgba(255,255,255,0)')
+        .attr('stroke-width', '10px')
+        .attr('fill', 'none')
+        .attr('cx', function(d) {
+          return d.x;
+        })
+        .attr('cy', function(d) {
+          return d.y;
+        })
+        
+      //文字
+      const node_text = node_force.append('text')
+        .attr('class', 'text-force')
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'central')
+        .attr('x', function(d) {
+          return d.x;
+        })
+        .attr('y', function(d) {
+          return d.y - 95;
+        })
+        .attr( 'fill', 'rgb(51,51,51)' )
+        .attr( 'font-size', '50px')
+        .attr( 'font-family', '\'Gill Sans\', \'Gill Sans MT\', Calibri, sans-serif')
+        .text(function(d) {
+          return d.caption();
+        });
+
+      
+      //对于每一个时间间隔--------------------刷新
+      force.on('tick', function() {	
+      //更新节点坐标
+      image.attr('x', function(d) { return (parseInt(d.x, 10) - 75).toString(); })
+            .attr('y', function(d) { return (parseInt(d.y, 10) - 60).toString(); })
+            .attr('clip-path', function(d) {
+              const tempx = ((parseInt(d.x, 10)) * 0.001 + 75).toString();
+              const tempy = ((parseInt(d.y, 10)) * 0.001 + 60).toString();
+              return 'circle(60px at ' + tempx + 'px ' + tempy + 'px)'
+            });
+      ring.attr('cx', function(d) { return d.x; })
+          .attr('cy', function(d) { return d.y; });
+      circle.attr('cx', function(d) { return d.x; })
+          .attr('cy', function(d) { return d.y; });
+      node_text.attr('x', function(d) { return d.x; })
+      .attr('y', function(d) { return d.y - 95; });
+      
+
+      // svg_edges.attr("x1",function(d){ return d.source.x; })
+			//  		.attr("y1",function(d){ return d.source.y; })
+			//  		.attr("x2",function(d){ return d.target.x; })
+      //  		.attr("y2",function(d){ return d.target.y; });
+      
+      edge_force.attr('transform', function(d) {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          return 'translate(' + d.source.x + ',' + d.source.y + ') rotate(' + angle + ')';
+        });
+      edge.attr('d', function(d) {
+        console.log(horizontalArrow_force(d.source,d.target, 0).outline);
+        return horizontalArrow_force(d.source,d.target, 0).outline; });
+      edge_text.attr('transform', function(d){
+        if(d.target.x > d.source.x){
+          return null;
+        } else {
+          return 'rotate(180)';
+        }
+      })
+      .attr('x', function(d) { return -1 * side_force( d.__data__ ) * horizontalArrow_force(d.source,d.target, 0).apex.x; } );
+
+
+      scaleZoom_force();
+    });
+    } else {
+      const temp = d3.selectAll('.graphdiagram_force');
+      for (let i = 0; i < temp[0][0].childNodes.length; ) {
+        temp[0][0].childNodes[i].parentNode.removeChild(temp[0][0].childNodes[i]);
+      }
+      editor.classed('hide', true);
+    }
+  }
 }
 
 $(function() {
@@ -143,6 +380,12 @@ $(function() {
   menuId: 0};
   $('.node_circle').contextify(optionsa);
 });
+
+/*
+*Define the structure of nodes
+*include position, caption, imageurl, and results .etc
+*/
+
 
 const Node  = function() {
   let position = {x: 0, y: 0};
@@ -237,9 +480,18 @@ const Node  = function() {
   };
 };
 
+/*
+*Define the structure of relationship
+*include predicate, arrow, startNode and endNode .etc
+*@param start: start node
+*@param end: end node
+*@return relationship
+*/
 const Relationship = function(start, end) {
   let predicate = '';
   let id;
+  this.sorce = 0;
+  this.target = 0;
   this.start = start;
   this.end = end;
   const variable = true;
@@ -266,6 +518,13 @@ const Relationship = function(start, end) {
   };
 };
 
+/*
+*Draw the relationship on the canvas
+*@param start: start node
+*@param end: end node
+*@param predicate: caption of edges
+*@return path
+*/
 function addRelationship(start, end, predicate) {
   const relation = new Relationship(start, end).id(start.id() + '_' + end.id()).predicate(predicate);
   if (predicate === '') {
@@ -286,8 +545,9 @@ function addRelationship(start, end, predicate) {
       }
     }
   }
-  const relationship = d3.selectAll('#d3graph').selectAll('relationship.g')
-  .data([relation]).enter().append('g').attr('class', 'relationship')
+
+  const relationship = d3.selectAll('#d3graph').selectAll('relationship.g').data([relation])
+  .enter().append('g').attr('class', 'relationship_view')
   .attr('transform', function(r) {
     const angle = r.start.angleTo(r.end);
     return 'translate(' + r.start.ex() + ',' + r.start.ey() + ') rotate(' + angle + ')';
@@ -300,6 +560,8 @@ function addRelationship(start, end, predicate) {
     })
     .attr('stroke', 'rgb(0, 0, 0)')
     .attr('stroke-dasharray', function(d) {
+      console.log('init_data');
+      console.log(d);
       if (d.variable) {
         return '10';
       } else {
@@ -322,6 +584,7 @@ function addRelationship(start, end, predicate) {
       relationship.append('text')
       .attr('class', 'type')
       .attr('transform', function(d) {
+        console.log('rotateIfRightToLeft');
         return rotateIfRightToLeft(d);
       })
       .attr('text-anchor', 'middle')
@@ -337,7 +600,7 @@ function addRelationship(start, end, predicate) {
       relationship.append('text')
       .attr('class', 'type')
       .attr('transform', function(d) {
-        return rotateIfRightToLeft(d);
+        return rotateIfRightToLeft_force(d);
       })
       .attr('text-anchor', 'middle')
       .attr('baseline-shift', '30%')
@@ -358,8 +621,17 @@ function appendModalBackdrop() {
 }
 
 function cancelModal() {
-  d3.selectAll( '.modal').classed( 'hide', true );
-  d3.selectAll( '.modal-backdrop' ).remove();
+  const editor = d3.selectAll( '.modal');
+  if (editor[0][1].classList[3] !== 'hide') {
+    editor.classed( 'hide', true );
+    d3.selectAll( '.modal-backdrop' ).remove();
+  } else if (editor[0][2].classList[3] !== 'hide') {
+    editor.classed( 'hide', true );
+    d3.selectAll( '.modal-backdrop' ).remove();
+  } else if (editor[0][2].classList[3] !== 'hide') {
+    editor.classed( 'hide', true );
+    d3.selectAll( '.modal-backdrop' ).remove();
+  }
 }
 
 function createNode(x, y) {
@@ -368,14 +640,14 @@ function createNode(x, y) {
   console.log('node');
   console.log(node);
   dataset.nodes.push(node);
+
   const images = d3.selectAll('#d3graph').selectAll('circle.g').data([node]);
   console.log(dataset.nodes[dataset.highestId - 1]);
   const imagesss = images.enter().append('g').attr('class', 'image_test');
   console.log(x, y);
-
   let tempId = 'id';
   imagesss.append('image').attr('class', 'image-class')
-    .attr('href', '')
+    .attr('href', '') //图片的链接网址
     .attr('x', function(d) {
       console.log(d);
       return d.x() - 75;
@@ -385,7 +657,7 @@ function createNode(x, y) {
     })
     .attr('height', '150')
     .attr('width', '150')
-    .attr('clip-path', 'circle(60px at 75px 60px)')
+    .attr('clip-path', 'circle(60px at 75px 60px)')//用于将图片裁剪成圆形
     .attr('display', 'true');
 
     imagesss.append('circle')
@@ -453,27 +725,16 @@ function createNode(x, y) {
     return images;
 }
 
+/*
+*Draw the set of nodes on the canvas
+*@param nodes: such as the result nodes
+*@return g
+*/
 function drawNodes(nodes) {
-console.log('before');
-  console.log(nodes);
-  console.log(dataset.nodes);
-  /*const force = d3.layout.force()
-        .nodes(dataset.nodes)
-        .links(dataset.relationships)
-        .size([1960, 800])
-        .linkDistance([250])
-        .charge([-500])
-        .theta(0.1)
-        .gravity(0.05)
-        .start();*/
-  console.log('after');
-  console.log(dataset.nodes);
   const images = d3.selectAll('#d3graph').selectAll('circle.g').data(nodes);
   const imagesss = images.enter().append('g').attr('class', 'image_test');
 
   let tempId = '';
-
-
 
   imagesss.append('image').attr('class', 'image-class')
     .attr('href', function(d) {
@@ -562,6 +823,10 @@ console.log('before');
     return images;
 }
 
+/*
+*The function of touch the node
+*Get the position of node before move the node
+*/
 function dragCircle() {
   console.log('222');
   const t = d3.select(this);
@@ -572,6 +837,11 @@ function dragCircle() {
   };
 }
 
+/*
+*The function of move the node
+*Modify the position of node in real time
+*Include the circle, image, ring, and relationship
+*/
 function dragCircleMove(d) {
   const node = d;
   const x = d3.event.x;
@@ -815,6 +1085,7 @@ function deletedShipView(node) {
   }
     // deleteShip(node, x);
 }
+
 function collapseNode() {
   console.log('doubleclick');
   let temp = d3.select(this)[0][0];
@@ -830,6 +1101,7 @@ function collapseNode() {
     temp.__data__.show = false;
   }
 }
+
 function expandNode() {
   const r = 800;
   let temp = d3.select(this)[0][0];
@@ -875,7 +1147,7 @@ function editnode() {
   const captionField = editor.select('#node_caption');
   captionField.node().value = tempvalue.childNodes[3].innerHTML || '';
   if (temp.__data__.result() === null) {// 如果结果为空
-    // appendModalBackdrop();
+    appendModalBackdrop();
     editor.classed( 'hide', false );
     captionField[0][0].parentElement.childNodes[0].focus();
     editor.select('#edit_node_cancle').on('click', cancelModal);
@@ -1180,6 +1452,10 @@ function rotateIfRightToLeft(r) {
   return r.end.isLeftOf( r.start ) ? ' ' : null;
 }
 
+function rotateIfRightToLeft_force(r) {
+  return r.end.x > r.start.x ? ' ' : null;
+}
+
 function snap(position, field, node ) {
   const ideal = position[field];
   let closestNode;
@@ -1207,6 +1483,10 @@ function side(r) {
   return r.end.isLeftOf(r.start) ? -1 : 1;
 }
 
+function side_force(r) {
+  return r.end.x > r.start.x ? -1 : 1;
+}
+//
 function touchRing(d) {
   console.log('333');
   const t = d3.select(this);
@@ -1221,6 +1501,22 @@ function touchRing(d) {
 // 计算边的路径
 function horizontalArrow( start, end, offset) {
   const length = start.distanceTo(end);
+  const arrowWidth = parsePixels('8px');
+  console.log('1');
+  console.log(length);
+  if (offset === 0) {
+      return horizontalArrowOutline(
+          start.startRelationship(),
+          (length - end.endRelationship()),
+          arrowWidth );
+  }
+}
+
+// 计算边的路径--力学
+function horizontalArrow_force( start, end, offset) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.sqrt(dx * dx + dy * dy) * dataset.internalScale;
   const arrowWidth = parsePixels('8px');
   console.log('1');
   console.log(length);
@@ -1358,7 +1654,7 @@ function curvedArrowOutline(startRadius, endRadius, endCentre, minOffset, arrowW
 }
 
 function scaleZoom() {
-  const svg = d3.selectAll('svg');
+  const svg = d3.selectAll('.graphdiagram');
   let xAvg = 0;
   let yAvg = 0;
   let xMax = 400;
@@ -1385,6 +1681,45 @@ function scaleZoom() {
     }
     xAvg = xAvg + x.x();
     yAvg = yAvg + x.y();
+  }
+  xAvg = xAvg / (dataset.highestId - 1);
+  yAvg = yAvg / (dataset.highestId - 1);
+  xMax = xMax + 100;
+  xMin = xMin - 100;
+  yMax = yMax + 100;
+  yMin = yMin - 150;
+  const viewBox = xMin.toString() + ', ' + yMin.toString() + ', ' + (xMax - xMin).toString() + ', ' + (yMax - yMin).toString();
+  svg[0][0].setAttribute('viewBox', viewBox);
+}
+
+function scaleZoom_force() {
+  const svg = d3.selectAll('.graphdiagram_force');
+  let xAvg = 0;
+  let yAvg = 0;
+  let xMax = 400;
+  let xMin = -400;
+  let yMax = 400;
+  let yMin = -400;
+  const nodesView = d3.selectAll('circle.node_circle')[0];
+  const nodes = [];
+  for (const y of nodesView) {
+    nodes.push(y.__data__);
+  }
+  for (const x of nodes) {
+    if (x.x > xMax) {
+      xMax = x.x;
+    }
+    if (x.x < xMin) {
+      xMin = x.x;
+    }
+    if (x.y > yMax) {
+      yMax = x.y;
+    }
+    if (x.y < yMin) {
+      yMin = x.y;
+    }
+    xAvg = xAvg + x.x;
+    yAvg = yAvg + x.y;
   }
   xAvg = xAvg / (dataset.highestId - 1);
   yAvg = yAvg / (dataset.highestId - 1);

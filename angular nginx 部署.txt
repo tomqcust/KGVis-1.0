@@ -1,0 +1,16 @@
+1、将dist目录拷贝到Nginx的/var/www/html/目录下
+sudo cp -rf dist/ /var/www/html/
+2、然后修改nginx的配置文件：
+/etc/nginx/sites-available/default
+3、默认配置
+server{
+        root /var/www/html;
+        # Add index.php to the list if you are using PHP
+        index index.html index.htm index.nginx-debian.html;
+        server_name _;
+        location / {
+                # First attempt to serve request as file, then
+                # as directory, then fall back to displaying a 404.
+                try_files $uri $uri/ =404;
+        }
+}

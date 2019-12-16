@@ -8,6 +8,10 @@ circle.node.ring:hover {
   stroke: rgba(255,0,0,0.3);
 }
 
+circle.ring-force:hover {
+  stroke: rgba(255,0,0,0.3);
+}
+
 path.relationship.overlay:hover {
   fill: rgba(255,0,0,0.3);
   stroke: rgba(255,0,0,0.3);
@@ -5167,6 +5171,22 @@ input[type="submit"].btn.btn-mini {
   -webkit-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
      -moz-box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
           box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+  -webkit-background-clip: padding-box;
+     -moz-background-clip: padding-box;
+          background-clip: padding-box;
+}
+
+.modal.pop-up-editor.force {
+
+  width: 100%;
+  margin-left: 0px;
+  margin-top: 0px;
+  border: 1px solid rgba(0, 0, 0, 0);
+  top: 60px;
+  left: 0%;
+  -webkit-box-shadow: 0 0px 0px rgba(0, 0, 0, 0);
+     -moz-box-shadow: 0 0px 0px rgba(0, 0, 0, 0);
+          box-shadow: 0 0px 0px rgba(0, 0, 0, 0);
   -webkit-background-clip: padding-box;
      -moz-background-clip: padding-box;
           background-clip: padding-box;
