@@ -1,14 +1,21 @@
 import { Component, OnInit, ElementRef} from '@angular/core';
 import { NONE_TYPE } from '@angular/compiler/src/output/output_ast';
+import { saveAs } from 'file-saver';
+
 declare var $;
 declare var d3;
 declare var d3sparql;
+declare var require; 
 const endpoint = 'https://dbpedia.org/sparql';
-const dbr = 'PREFIX dbr:<http://dbpedia.org/resource/> ';
-const dbo = 'PREFIX dbo:<http://dbpedia.org/ontology/> ';
-const dbp = 'PREFIX dbp:<http://dbpedia.org/property/> ';
+const dbr = 'PREFIX dbr:<http://dbpedia.org/resource/>';
+const dbo = 'PREFIX dbo:<http://dbpedia.org/ontology/>';
+const dbp = 'PREFIX dbp:<http://dbpedia.org/property/>';
 const rdf = 'PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>';
+const rdfs = 'PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>';
 const xsd = 'PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>';
+//let sparql = dbr + dbo + dbp + 'SELECT ?path WHERE {dbr:Karl_Marx dbo:thumbnail ?path.}';
+let sparql = dbr + dbo + dbp + 'SELECT ?peoples WHERE {dbr:Bob_Black dbo:influencedBy ?x.\ndbr:Bob_Black dbo:influenced ?y.\n?y dbo:influencedBy ?s.\nOPTIONAL {?people dbo:thumbnail ?path.}}';
+
 const dataset = {
   nodes: [],
   relationships: [],
@@ -32,12 +39,22 @@ const parameters = {
   styleUrls: ['./article.component.css']
 })
 export class ArticleComponent implements OnInit {
+  
+  dynamicContent = '';
 
   constructor(
     private el: ElementRef
   ) { }
 
   labelChanged(e) {
+    const keycode = window.event ? e.keyCode : e.which;
+    if (keycode === 13) {// 回车键
+      console.log('回车');
+
+    }
+  }
+
+  typeChanged(e) {
     const keycode = window.event ? e.keyCode : e.which;
     if (keycode === 13) {// 回车键
       console.log('回车');
@@ -91,7 +108,7 @@ export class ArticleComponent implements OnInit {
                 };
               }));
             }
-            const sparql = dbr + dbo + dbp + rdf + ' SELECT ?person WHERE {?person rdf:type dbo:Person. FILTER( regex ((?person), \'' + request.term.toString() + '\' ))} LIMIT 20';
+            sparql = dbr + dbo + dbp + rdf + ' SELECT ?person WHERE {?person rdf:type dbo:Person. FILTER( regex ((?person), \'' + request.term.toString() + '\' ))} LIMIT 20';
             d3sparql.query(endpoint, sparql, render);
             function render(json, bug) {
               if ( json != null && json.results.bindings.length !== 0 ) {// 请求成功
@@ -127,10 +144,34 @@ export class ArticleComponent implements OnInit {
             source: tags
         });
       });
+
+      $(function() {
+        const tags = [
+          'Athlete',
+          'OrganisationMember',
+          'Artist',
+          'OfficeHolder',
+          'Politician',
+          'MilitaryPerson',
+          'Writer',
+          'Monarch',
+          'BeautyQueen',
+          'Philosopher',
+          'Model',
+          'Journalist',
+          'Economist',
+          'Religious',
+          'BusinessPerson'
+        ];  
+        $( 'input#node_type' ).autocomplete({
+            minChars: 3,
+            source: tags
+        });
+      });
     }
 
   onClick() {
-    createNode(0, 100);
+    createNode(0, 100, 0);
   }
 
   d3force() {
@@ -141,8 +182,10 @@ export class ArticleComponent implements OnInit {
 
       var nodeset = [];
       var edgeset = [];
+
       const nodes = d3.selectAll('.image_test');
       console.log('点');
+
       for (const node of nodes[0]) {
         const temp_node = node.__data__;
         const temp = nodeset.indexOf(temp_node);
@@ -368,6 +411,56 @@ export class ArticleComponent implements OnInit {
       editor.classed('hide', true);
     }
   }
+
+  showCode() {
+    const editor = d3.select('.pop-up-editor.code');
+    const captionField = editor.select('#query_code');
+
+    console.log(sparql);
+    //let sparql_temp=sparql;
+    let sparql_temp = sparql.replace(/>/g,'>\n');
+    sparql_temp = sparql_temp.replace(/{/g,'{\n');
+
+
+    sparql_temp = sparql_temp.replace(/</g,'&lt');
+    sparql_temp = sparql_temp.replace(/>/g,'&gt');
+    sparql_temp = sparql_temp.replace(/dbr:/g,'<span class="hljs-code">dbr</span>:');
+    sparql_temp = sparql_temp.replace(/dbo:/g,'<span class="hljs-code">dbo</span>:');
+    sparql_temp = sparql_temp.replace(/dbp:/g,'<span class="hljs-code">dbp</span>:');
+    sparql_temp = sparql_temp.replace(/rdf:/g,'<span class="hljs-code">rdf</span>:');
+    sparql_temp = sparql_temp.replace(/rdfs:/g,'<span class="hljs-code">rdfs</span>:');
+    sparql_temp = sparql_temp.replace(/xsd:/g,'<span class="hljs-code">xsd</span>:');
+    sparql_temp = sparql_temp.replace(/\?path/g,'<span class="hljs-name">?path</span>');
+
+    sparql_temp = sparql_temp.replace(/\?x/g,'<span class="hljs-name">?x</span>');
+    sparql_temp = sparql_temp.replace(/\?y/g,'<span class="hljs-name">?y</span>');
+    sparql_temp = sparql_temp.replace(/\?people/g,'<span class="hljs-name">?people</span>');
+
+    sparql_temp = sparql_temp.replace(/SELECT/g,'<span class="hljs-link">SELECT</span>');
+    sparql_temp = sparql_temp.replace(/PREFIX/g,'<span class="hljs-link">PREFIX</span>');
+    sparql_temp = sparql_temp.replace(/WHERE/g,'<span class="hljs-link">WHERE</span>');
+    sparql_temp = sparql_temp.replace(/OPTIONAL/g,'<span class="hljs-link">OPTIONAL</span>');
+    sparql_temp = sparql_temp.replace(/\?peoples/g,'<span class="hljs-name">?peoples</span>');
+    console.log(sparql_temp);
+    //sparql_temp = sparql_temp.replace(/./g,'.\n');
+    editor.classed( 'hide', false );
+    this.dynamicContent = '<pre><code class="typescript highlight hljs">' + sparql_temp + '</code></pre>';
+    
+    console.log(captionField[0][0]);
+    editor.select('#edit_code_cancle').on('click', cancelModal);
+  }
+
+  downloadResult() {
+    const nodes = d3.selectAll('.image_test');
+    let str_temp='';
+    for (const node of nodes[0]) {
+      //console.log(node.__data__.caption());
+      str_temp += '<http://dbpedia.org/resource/' + node.__data__.caption()+ ">\n";
+    }
+    const FileSaver = require('file-saver'); 
+    const blob = new Blob([str_temp], {type: 'text/plain;charset=utf-8'});
+    FileSaver.saveAs(blob, 'Result.txt');
+  }
 }
 
 $(function() {
@@ -375,7 +468,10 @@ $(function() {
     //{header: '第一个链接'},
     {text: 'Expand', onclick: expandNode},
     {text: 'Collapse', onclick: collapseNode},
-    {text: 'Filter', onclick: filterNode }
+    {text: 'Filter', onclick: filterNode },
+    {text: 'Lock', onclick: lockNode },
+    {text: 'Optional', onclick: lockNode },
+    {text: 'Union', onclick: lockNode }
   ],
   menuId: 0};
   $('.node_circle').contextify(optionsa);
@@ -628,23 +724,32 @@ function cancelModal() {
   } else if (editor[0][2].classList[3] !== 'hide') {
     editor.classed( 'hide', true );
     d3.selectAll( '.modal-backdrop' ).remove();
-  } else if (editor[0][2].classList[3] !== 'hide') {
+  } else if (editor[0][3].classList[3] !== 'hide') {
+    editor.classed( 'hide', true );
+    d3.selectAll( '.modal-backdrop' ).remove();
+  } else if (editor[0][4].classList[3] !== 'hide'){
     editor.classed( 'hide', true );
     d3.selectAll( '.modal-backdrop' ).remove();
   }
-}
+}       
 
-function createNode(x, y) {
+function createNode(x, y, z) {
   dataset.highestId += 1;
   const node = new Node().x(x).y(y).id(dataset.highestId - 1);
   console.log('node');
   console.log(node);
   dataset.nodes.push(node);
 
+  
+  if(z == 0){//按键创建新节点
+
+  }else if(z == 1){//拖拽创建新节点
+
+  }
   const images = d3.selectAll('#d3graph').selectAll('circle.g').data([node]);
-  console.log(dataset.nodes[dataset.highestId - 1]);
+  //console.log(dataset.nodes[dataset.highestId - 1]);
   const imagesss = images.enter().append('g').attr('class', 'image_test');
-  console.log(x, y);
+  //console.log(x, y);
   let tempId = 'id';
   imagesss.append('image').attr('class', 'image-class')
     .attr('href', '') //图片的链接网址
@@ -816,7 +921,10 @@ function drawNodes(nodes) {
       //{header: '第一个链接'},
       {text: 'Expand', onclick: expandNode},
       {text: 'Collapse', onclick: collapseNode},
-      {text: 'Filter', onclick: filterNode }
+      {text: 'Filter', onclick: filterNode },
+      {text: 'Lock', onclick: lockNode },
+      {text: 'Optional', onclick: lockNode },
+      {text: 'Union', onclick: lockNode }
     ],
     menuId: tempId};
     $('.node_circle').contextify(optionsa);
@@ -1141,9 +1249,9 @@ function editnode() {
   if ( temp.tagName === 'A') {
     temp = d3.selectAll('#id' + temp.parentNode.parentNode.id)[0][0];
   }
-  console.log(temp);
+  console.log(temp.__data__);
   const tempvalue = temp.parentElement;
-  const editor = d3.select('.pop-up-editor.node');
+  const editor = d3.select('.pop-up-editor.node');//d3.select('.pop-up-editor.node').select('#node_properties').node().value;
   const captionField = editor.select('#node_caption');
   captionField.node().value = tempvalue.childNodes[3].innerHTML || '';
   if (temp.__data__.result() === null) {// 如果结果为空
@@ -1158,17 +1266,26 @@ function editnode() {
       console.log('xxxxxxxx');
       const heads = getHeadNode(temp.__data__);
       const nodes = temp.__data__.result();
-      console.log(nodes);
+      //console.log(heads.length == 0);
+      let temp_x = 0;
+      let temp_y = 0;
+      if(heads.length == 0){
+        temp_x = 0;
+        temp_y = 0;
+      }else {
+        temp_x = heads[0].x();
+        temp_y = heads[0].y();
+      }
       for (let x = 1; x < nodes.length + 1; x++) {
         if (x % 2 === 1) {
           const tempi = (x + 1) / 2;
-          const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
-          const tempy = heads[0].y() + r * Math.sin(2 * 3.141592653 * tempi / 27);
+          const tempx = temp_x + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = temp_y + r * Math.sin(2 * 3.141592653 * tempi / 27);
           nodes[x - 1].x(tempx).y(tempy);
         } else {
           const tempi = x / 2;
-          const tempx = heads[0].x() + r * Math.cos(2 * 3.141592653 * tempi / 27);
-          const tempy = heads[0].y() - r * Math.sin(2 * 3.141592653 * tempi / 27);
+          const tempx = temp_x + r * Math.cos(2 * 3.141592653 * tempi / 27);
+          const tempy = temp_y - r * Math.sin(2 * 3.141592653 * tempi / 27);
           nodes[x - 1].x(tempx).y(tempy);
         }
         for (const y of heads) {
@@ -1189,26 +1306,91 @@ function editnode() {
       temp.__data__.show = false;
     }
   }
-  function saveModal() {
+  function saveModal() {//Search
     tempvalue.__data__.caption(captionField.node().value);
+    let tempNumber = 0;
+    let type = d3.select('.pop-up-editor.node').select('#node_type').node().value;
     if (tempvalue.__data__.caption() !== '') {
       tempvalue.__data__.variable = false;
       tempvalue.childNodes[1].setAttribute('stroke-dasharray', 'none');
+      console.log(tempvalue.__data__.caption());
+      tempvalue.childNodes[3].innerHTML = captionField.node().value;
+      const person_name = captionField.node().value;
+      sparql = dbr + dbo + dbp + 'SELECT ?path WHERE {dbr:' + person_name + ' dbo:thumbnail ?path.}';
+      d3sparql.query(endpoint, sparql, render);
     } else {
-      tempvalue.__data__.variable = true;
-      tempvalue.childNodes[1].setAttribute('stroke-dasharray', '15');
+      tempvalue.childNodes[0].setAttribute('href', '');
+      if (type !== '') {
+        tempNumber = 1;
+        tempvalue.__data__.variable = true;
+        tempvalue.childNodes[1].setAttribute('stroke-dasharray', '15');
+        sparql = dbr + rdf + rdfs + dbo + dbp + ' SELECT distinct ?people ?path WHERE { ?people rdf:type dbo:' + type + '. optional {?people dbo:thumbnail ?path.}} LIMIT 20';
+        d3sparql.query(endpoint, sparql, render);
+        console.log('endquery');
+      }
     }
-    console.log(tempvalue.__data__.caption());
-    tempvalue.childNodes[3].innerHTML = captionField.node().value;
-    const person_name = captionField.node().value;
-    const sparql = dbr + dbo + dbp + 'SELECT ?path WHERE {dbr:' + person_name + ' dbo:thumbnail ?path.}';
-    d3sparql.query(endpoint, sparql, render);
     function render(json, bug) {
       if ( json != null && json.results.bindings.length !== 0 ) {// 请求成功
-        const uri = json.results.bindings[0].path.value;
-        tempvalue.childNodes[0].setAttribute('href', uri);
-        console.log(uri);
+        console.log('111111');
+        if(tempNumber == 0){
+          const uri = json.results.bindings[0].path.value;
+          tempvalue.childNodes[0].setAttribute('href', uri);
+          console.log(uri);
+        }else if(tempNumber == 1){
+          console.log('111111');
+          console.log(json.results);
+          let length_temp = json.results.bindings.length;
+          
+          if(length_temp == 10000){
+            sparql = dbr + rdf + rdfs + dbo + dbp + ' SELECT (count(?x) as ?count) WHERE { ?x rdf:type dbo:' + type + '.} LIMIT 20';
+            d3sparql.query(endpoint, sparql, render);
+          }else{
+            if(length_temp == 1){
+              tempvalue.childNodes[3].innerHTML = 'List ' + json.results.bindings[0].count.value;
+            }else {
+              tempvalue.childNodes[3].innerHTML = 'List ' + length_temp;
+              const nodes = [];
+              for (const x of json.results.bindings) {
+                const temp = new Node();
+                temp.caption(x.people.value.slice(28));
+                if (x.path !== undefined) {
+                  temp.imageurl(x.path.value);
+                  console.log(x.path.value)
+                }
+                temp.id(dataset.highestId);
+                dataset.highestId += 1;
+                nodes.push(temp);
+                dataset.nodes.push(temp);
+              }
+              if (length !== 1) {
+                temp.__data__.result(nodes);
+              }
+            }
+            
+          }
+
+          ////var str=json.results.bindings;
+  
+          ////let str_temp='';
+          
+          //var w = window.open();
+          //w.document.open("text","utf-8");
+          //w.document.charset = 'UTF-8';
+          ////for(var i=0;i<str.length;i++){
+            //w.document.write(str[i].x.value+ "<br />");
+            //str_temp += str[i].x.value+ "\n"
+          
+          ////}
+          ////const FileSaver = require('file-saver'); 
+          ////const blob = new Blob([str_temp], {type: 'text/plain;charset=utf-8'});
+          ////FileSaver.saveAs(blob, 'DBpedia.txt');
+          ////console.log('DBpedia.txt');
+          //w.document.execCommand("SaveAs", true,  number + "-" + number+49999 + ".txt");
+     
+
+        }
       } else { // 请求失败
+        console.log('111111');
         tempvalue.childNodes[0].setAttribute('href', '');
       }
     }
@@ -1221,6 +1403,8 @@ function editnode() {
   }
 }
 
+function lockNode() {
+}
 function filterNode() {
   let tempvalue = d3.select(this)[0][0];
   if ( tempvalue.tagName === 'A') {
@@ -1258,7 +1442,7 @@ function filterNode() {
       //subject = 'dbr:' + nodes.caption();
    }
    sparqltext += subject + ' dbo:' + filtera + ' ?peoples. optional {?x dbo:thumbnail ?path.} filter(?peoples>\"' + filterb + '-01-01\"^^xsd:date)}';
-   const sparql = dbr + dbo + dbp + xsd + sparqltext;
+   sparql = dbr + dbo + dbp + xsd + sparqltext;
    console.log(sparql);
    const newNodes = [];
    d3sparql.query(endpoint, sparql, render);
@@ -1341,7 +1525,10 @@ function editRelationship() {
       if (temp.result() !== null) {
         subject = 'VALUES ?x {';
        for (const x of temp.result()) {
-         subject += 'dbr:' + x.caption() + ' ';
+         if (x.caption().indexOf("\'") == -1){
+          subject += 'dbr:' + x.caption() + ' ';
+         }
+         
        }
        subject += '} ?x';
      } else {
@@ -1353,7 +1540,7 @@ function editRelationship() {
     tempvalue.parentElement.childNodes[1].innerHTML = captionField.node().value;
     //const sparqltext = 'SELECT ?peoples ?path WHERE {' + subject + ' dbo:' + predicate + ' ?peoples. OPTIONAL {?peoples dbo:thumbnail ?path.}}';
     console.log(sparqltext);
-    const sparql = dbr + dbo + dbp + sparqltext;
+    sparql = dbr + dbo + dbp + sparqltext;
     d3sparql.query(endpoint, sparql, render);
     function render(json) {
       console.log(json);
@@ -1490,7 +1677,7 @@ function side_force(r) {
 function touchRing(d) {
   console.log('333');
   const t = d3.select(this);
-  const node = createNode(parseInt(t[0][0].getAttribute('cx'), 10), parseInt(t[0][0].getAttribute('cy'), 10));
+  const node = createNode(parseInt(t[0][0].getAttribute('cx'), 10), parseInt(t[0][0].getAttribute('cy'), 10), 1);
   const ship = addRelationship(d, node[0][0].__data__, '');
   return {
     x: t[0][0].parentElement.childNodes[1].getAttribute('cx'),

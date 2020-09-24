@@ -74,7 +74,7 @@ d3sparql.fetch = function(url, callback) {
 }
 
 d3sparql.query = function(endpoint, sparql, callback) {
-  var url = endpoint + "?query=" + encodeURIComponent(sparql)
+  var url = endpoint + "?default-graph-uri=http://dbpedia.org&query=" + encodeURIComponent(sparql)
   if (d3sparql.debug) { console.log(endpoint) }
   d3sparql.fetch(url, callback)
 }

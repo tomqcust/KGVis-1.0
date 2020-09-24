@@ -3,6 +3,9 @@
   <button class="btn" id="go_to_doc_button"><a href="doc" target="_blank" >Operation document</a></button>
   <button class="btn" id="go_to_user_button"><a href="userStudy" target="_blank" >User Study document</a></button>
   <button (click)="d3force()" class="btn" id="changeToForce" ><a>Force Layout</a></button>
+  <button (click)="showCode()" class="btn" id="showCode" ><a>Query Code</a></button>
+  <button (click)="downloadResult()" class="btn" id="downloadResult" ><a>Download</a></button>
+
 </h1>
 <div id="canvas">
   <svg class="graphdiagram" id="d3graph" width="100%" height="800" viewBox="-500, -550, 1000, 1050">
@@ -26,22 +29,22 @@
   <div class="modal-body">
     <div class="form-horizontal">
       <div class="control-group">
-        <label class="control-label" for="node_caption">Label</label>
+        <label class="control-label" for="node_caption">Keyword</label>
         <div class="ui-widget">
           <input id="node_caption" type="text" autocomplete="on" (keyup)="labelChanged($event)" autofocus="autofocus">
         </div>
       </div>
       <div class="control-group" hide="true">
-        <label class="control-label" for="node_properties">Property</label>
+        <label class="control-label" for="node_properties">Type</label>
         <div class="controls">
-          <textarea id="node_properties" rows="6" autocomplete="on"></textarea>
+          <input id="node_type" type="text" value="" (keyup)="typeChanged($event)" autofocus="autofocus">
         </div>
       </div>
     </div>
   </div>
   <div class="modal-footer">
     <a href="#" class="btn cancel" id="edit_node_cancle">Cancel</a>
-    <a href="#" class="btn btn-primary" id="edit_node_save">Save</a>
+    <a href="#" class="btn btn-primary" id="edit_node_save">Search</a>
   </div>
 </div>
 <!--Edit Relationship.-->
@@ -71,7 +74,7 @@
   </div>
   <div class="modal-footer">
     <a href="#" class="btn cancel" id="edit_relationship_cancle" contextmenu="alert('a')">Cancel</a>
-    <a href="#" class="btn btn-primary" id="edit_relationship_save">Save</a>
+    <a href="#" class="btn btn-primary" id="edit_relationship_save">Search</a>
   </div>
 </div>
 <!--Edit Filter.-->
@@ -95,6 +98,28 @@
   </div>
   <div class="modal-footer">
     <a href="#" class="btn cancel" id="edit_filter_cancle" contextmenu="alert('a')">Cancel</a>
-    <a href="#" class="btn btn-primary" id="edit_filter_save">Save</a>
+    <a href="#" class="btn btn-primary" id="edit_filter_save">Search</a>
+  </div>
+</div>
+<!--Show Query Code.-->
+<div class="modal pop-up-editor code hide" tabindex="-1">
+  <div class="modal-header">
+    <h3>Query code</h3>
+  </div>
+  <div class="modal-body">
+    <div class="form-horizontal">
+      <div class="control-group" hide="true">
+        <div class="code_controls">
+          <section
+            [innerHTML]="dynamicContent"
+            
+            
+          ></section>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <a href="#" class="btn cancel" id="edit_code_cancle">Close</a>
   </div>
 </div>
