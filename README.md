@@ -25,4 +25,6 @@ With the application of artificial intelligence, AI has become a powerful tool t
 The paper "KGVis: An Interactive Visual Query Language for Knowledge Graphs" has been published on DASFAA 2019 as demo paper.
 
 DOI: https://doi.org/10.1007/978-3-030-18590-9_82
+
+## Complete Visual Syntax of GPVQL
      
