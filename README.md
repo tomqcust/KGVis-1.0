@@ -27,4 +27,5 @@ The paper "KGVis: An Interactive Visual Query Language for Knowledge Graphs" has
 DOI: https://doi.org/10.1007/978-3-030-18590-9_82
 
 ## Complete Visual Syntax of GPVQL
+![RUNOOB 图标](https://github.com/tomqcust/KGVis-1.0/blob/master/src/assets/img/syntax.png)
      
