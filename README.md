@@ -30,5 +30,5 @@ DOI: https://doi.org/10.1007/978-3-030-18590-9_82
 ![RUNOOB 图标](https://github.com/tomqcust/KGVis-1.0/blob/master/src/assets/img/syntax.png)
 
 ## Complete Visual Semantic of GPVQL
-![RUNOOB 图标](https://github.com/tomqcust/KGVis-1.0/blob/master/src/assets/img/syntax.png)
+![RUNOOB 图标](https://github.com/tomqcust/KGVis-1.0/blob/master/src/assets/img/semantic.png)
      
